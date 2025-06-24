@@ -1,25 +1,46 @@
 export class ImageTracker {
     constructor() {
         this.lastDetection = null;
-        this.detectionTimeout = 500; // 减少到500ms，提高响应速度
+        this.detectionTimeout = 300; // 进一步减少到300ms
         this.templates = [];
-        this.threshold = 0.25; // 进一步降低匹配阈值，提高检测成功率
-        this.debugMode = false; // 关闭调试模式以提高性能
+        this.threshold = 0.2; // 进一步降低匹配阈值
+        this.debugMode = false;
         this.lastDetectionTime = 0;
-        this.detectionInterval = 100; // 每100ms检测一次，减少CPU使用
+        this.detectionInterval = 150; // 增加到150ms，减少CPU使用
+        this.isInitialized = false;
+        
+        // 延迟初始化，减少启动时间
+        setTimeout(() => {
+            this.isInitialized = true;
+            console.log('图片追踪器延迟初始化完成');
+        }, 100);
     }
 
-    // 添加模板图片
+    // 添加模板图片 - 优化版本
     addTemplate(imageUrl, name = 'template') {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
+            
+            // 设置加载超时
+            const timeout = setTimeout(() => {
+                reject(new Error('图片加载超时'));
+            }, 3000);
+            
             img.onload = () => {
+                clearTimeout(timeout);
+                
+                // 优化canvas创建
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+                
+                // 限制图片尺寸以提高性能
+                const maxSize = 200;
+                const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 this.templates.push({
@@ -32,10 +53,13 @@ export class ImageTracker {
                 console.log(`模板图片 "${name}" 添加成功，尺寸: ${canvas.width}x${canvas.height}`);
                 resolve();
             };
+            
             img.onerror = (error) => {
+                clearTimeout(timeout);
                 console.error(`模板图片 "${name}" 加载失败:`, error);
                 reject(error);
             };
+            
             img.src = imageUrl;
         });
     }

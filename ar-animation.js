@@ -12,7 +12,8 @@ export class ARAnimation {
         // GIF动画相关
         this.gifImage = null;
         this.gifLoaded = false;
-        this.gifElement = null; // 用于显示动态GIF的img元素
+        this.gifElement = null;
+        this.gifPath = null; // 存储GIF路径，延迟创建元素
         
         // 2D Canvas动画相关
         this.ctx = null;
@@ -63,7 +64,15 @@ export class ARAnimation {
     }
 
     showGifAnimation() {
-        if (!this.isRunning || !this.gifElement) return;
+        if (!this.isRunning) return;
+        
+        // 延迟创建GIF元素
+        this.createGifElementIfNeeded();
+        
+        if (!this.gifElement) {
+            console.log('GIF元素尚未创建，跳过显示');
+            return;
+        }
         
         // 计算GIF的显示位置和大小
         const centerX = this.targetPosition.x;
@@ -112,45 +121,55 @@ export class ARAnimation {
         });
     }
 
-    // 加载GIF动画
+    // 加载GIF动画 - 优化版本
     loadGif(gifPath) {
         return new Promise((resolve, reject) => {
             this.gifImage = new Image();
+            this.gifPath = gifPath; // 存储路径，延迟创建元素
+            
+            // 设置加载超时
+            const timeout = setTimeout(() => {
+                reject(new Error('GIF加载超时'));
+            }, 3000);
+            
             this.gifImage.onload = () => {
+                clearTimeout(timeout);
                 this.gifLoaded = true;
                 console.log('GIF动画加载成功:', gifPath, '尺寸:', this.gifImage.width, 'x', this.gifImage.height);
-                
-                // 创建用于显示的img元素
-                this.createGifElement(gifPath);
-                
                 resolve();
             };
+            
             this.gifImage.onerror = (error) => {
+                clearTimeout(timeout);
                 console.error('GIF动画加载失败:', error);
                 reject(error);
             };
+            
             this.gifImage.src = gifPath;
         });
     }
 
-    createGifElement(gifPath) {
-        // 移除旧的GIF元素
-        if (this.gifElement) {
-            this.gifElement.remove();
+    // 延迟创建GIF元素，只在需要时创建
+    createGifElementIfNeeded() {
+        if (!this.gifElement && this.gifPath && this.gifLoaded) {
+            // 移除旧的GIF元素
+            if (this.gifElement) {
+                this.gifElement.remove();
+            }
+            
+            // 创建新的GIF元素
+            this.gifElement = document.createElement('img');
+            this.gifElement.src = this.gifPath;
+            this.gifElement.style.display = 'none';
+            this.gifElement.style.position = 'absolute';
+            this.gifElement.style.zIndex = '1000';
+            this.gifElement.style.pointerEvents = 'none';
+            
+            // 添加到body中
+            document.body.appendChild(this.gifElement);
+            
+            console.log('GIF元素已创建并添加到页面');
         }
-        
-        // 创建新的GIF元素
-        this.gifElement = document.createElement('img');
-        this.gifElement.src = gifPath;
-        this.gifElement.style.display = 'none'; // 初始隐藏
-        this.gifElement.style.position = 'absolute';
-        this.gifElement.style.zIndex = '1000';
-        this.gifElement.style.pointerEvents = 'none';
-        
-        // 添加到body中
-        document.body.appendChild(this.gifElement);
-        
-        console.log('GIF元素已创建并添加到页面');
     }
 
     // 兼容旧版本的方法

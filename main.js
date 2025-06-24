@@ -97,23 +97,20 @@ class SimpleARApp {
     async initTrackersAsync() {
         try {
             console.log('开始异步初始化追踪器...');
-            this.updateStatus('正在初始化AR组件...');
             
-            // 初始化图片追踪器
+            // 立即初始化核心组件，不等待资源加载
             this.imageTracker = new ImageTracker();
-            
-            // 初始化AR动画
             this.animation = new ARAnimation();
             
-            // 设置快速启动标志
+            // 立即设置初始化完成标志
             this.isInitialized = true;
-            this.updateStatus('AR组件初始化完成！可以开始使用了');
+            console.log('AR组件核心初始化完成');
             
-            // 隐藏加载界面，允许用户立即开始使用
+            // 立即隐藏加载界面
             this.hideLoading();
             
-            // 后台继续加载资源，但不阻塞用户操作
-            this.loadResourcesInBackground();
+            // 静默后台加载资源，不更新状态
+            this.loadResourcesSilently();
             
         } catch (error) {
             console.error('追踪器初始化失败:', error);
@@ -122,117 +119,63 @@ class SimpleARApp {
         }
     }
 
-    async loadResourcesInBackground() {
+    async loadResourcesSilently() {
         try {
-            console.log('后台加载资源...');
+            console.log('静默后台加载资源...');
             
-            // 并行加载GIF动画和marker模板，但使用更短的超时时间
-            await Promise.all([
-                this.loadGifAnimation(),
-                this.loadMarkerTemplate()
-            ]);
+            // 只尝试最可能的路径，不显示加载状态
+            const gifPath = '/images/ts.GIF';
+            const markerPath = '/images/marker.png';
             
-            console.log('所有资源加载完成');
+            // 并行加载，但使用更短的超时
+            const promises = [
+                this.loadGifSilently(gifPath),
+                this.loadMarkerSilently(markerPath)
+            ];
+            
+            await Promise.allSettled(promises);
+            console.log('后台资源加载完成');
             
         } catch (error) {
             console.error('后台资源加载失败:', error);
-            // 不显示错误，因为用户已经可以开始使用了
         }
     }
 
-    async loadGifAnimation() {
+    async loadGifSilently(gifPath) {
         try {
-            console.log('加载GIF动画...');
-            this.updateStatus('正在加载动画文件...');
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('加载超时')), 1500);
+            });
             
-            // 只尝试最可能的路径，减少加载时间
-            const gifPaths = [
-                '/images/ts.GIF',
-                '/ar2-animation/images/ts.GIF',
-                'images/ts.GIF'
-            ];
+            await Promise.race([
+                this.animation.loadGif(gifPath),
+                timeoutPromise
+            ]);
             
-            let gifLoaded = false;
-            
-            for (const path of gifPaths) {
-                try {
-                    // 缩短超时时间到2秒
-                    const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('加载超时')), 2000);
-                    });
-                    
-                    await Promise.race([
-                        this.animation.loadGif(path),
-                        timeoutPromise
-                    ]);
-                    
-                    console.log(`成功加载GIF动画: ${path}`);
-                    this.updateStatus('动画加载完成！');
-                    gifLoaded = true;
-                    break;
-                } catch (error) {
-                    console.log(`无法从 ${path} 加载GIF:`, error.message);
-                }
-            }
-            
-            if (!gifLoaded) {
-                console.warn('无法加载GIF动画，将显示默认效果');
-                this.updateStatus('动画加载失败，使用默认效果');
-            }
+            console.log(`GIF加载成功: ${gifPath}`);
             
         } catch (error) {
-            console.error('加载GIF动画失败:', error);
-            this.updateStatus('动画加载失败');
-            // 不抛出错误，允许应用继续运行
+            console.log(`GIF加载失败: ${error.message}`);
         }
     }
 
-    async loadMarkerTemplate() {
+    async loadMarkerSilently(markerPath) {
         try {
-            console.log('加载marker模板...');
-            this.updateStatus('正在加载识别模板...');
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('加载超时')), 1500);
+            });
             
-            // 只尝试最可能的路径
-            const markerPaths = [
-                '/images/marker.png',
-                '/ar2-animation/images/marker.png',
-                'images/marker.png'
-            ];
+            await Promise.race([
+                this.imageTracker.addTemplate(markerPath, 'marker'),
+                timeoutPromise
+            ]);
             
-            let markerLoaded = false;
-            
-            for (const path of markerPaths) {
-                try {
-                    // 缩短超时时间到2秒
-                    const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('加载超时')), 2000);
-                    });
-                    
-                    await Promise.race([
-                        this.imageTracker.addTemplate(path, 'marker'),
-                        timeoutPromise
-                    ]);
-                    
-                    console.log(`成功加载marker模板: ${path}`);
-                    this.updateStatus('模板加载完成！');
-                    markerLoaded = true;
-                    break;
-                } catch (error) {
-                    console.log(`无法从 ${path} 加载marker:`, error.message);
-                }
-            }
-            
-            if (!markerLoaded) {
-                console.warn('无法加载marker.png，将使用通用图片检测');
-                this.updateStatus('模板加载失败，使用通用检测');
-                // 添加一个简单的测试模板
-                await this.addTestTemplate();
-            }
+            console.log(`Marker加载成功: ${markerPath}`);
             
         } catch (error) {
-            console.error('加载marker模板失败:', error);
-            this.updateStatus('模板加载失败');
-            // 不抛出错误，允许应用继续运行
+            console.log(`Marker加载失败: ${error.message}`);
+            // 如果加载失败，添加测试模板
+            await this.addTestTemplate();
         }
     }
 
