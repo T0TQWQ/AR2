@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/ar2-animation/',
+  base: '/',
   server: {
     host: '0.0.0.0',
     port: 3000,
