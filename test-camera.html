@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄像头测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>摄像头测试页面</h1>
+        <p>这个页面用于测试摄像头权限和功能</p>
+        
+        <button onclick="testCamera()">测试摄像头</button>
+        <button onclick="clearLog()">清除日志</button>
+        
+        <video id="video" autoplay playsinline muted></video>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function testCamera() {
+            clearLog();
+            
+            log('=== 开始摄像头测试 ===', 'info');
+            log(`浏览器: ${navigator.userAgent}`, 'info');
+            log(`协议: ${window.location.protocol}`, 'info');
+            log(`域名: ${window.location.hostname}`, 'info');
+            
+            // 检查基本支持
+            if (!navigator.mediaDevices) {
+                log('❌ navigator.mediaDevices 不支持', 'error');
+                return;
+            }
+            
+            if (!navigator.mediaDevices.getUserMedia) {
+                log('❌ getUserMedia 不支持', 'error');
+                return;
+            }
+            
+            log('✅ 基本API支持正常', 'success');
+            
+            // 检查权限状态
+            if (navigator.permissions) {
+                try {
+                    const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+                    log(`摄像头权限状态: ${permissionStatus.state}`, 'info');
+                } catch (e) {
+                    log(`无法查询权限状态: ${e.message}`, 'error');
+                }
+            }
+            
+            // 尝试获取摄像头
+            const constraints = [
+                {
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                },
+                {
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                },
+                {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                },
+                {
+                    video: true
+                }
+            ];
+
+            let stream = null;
+            let lastError = null;
+
+            for (let i = 0; i < constraints.length; i++) {
+                try {
+                    log(`尝试配置 ${i + 1}: ${JSON.stringify(constraints[i])}`, 'info');
+                    stream = await navigator.mediaDevices.getUserMedia(constraints[i]);
+                    log(`✅ 配置 ${i + 1} 成功`, 'success');
+                    break;
+                } catch (error) {
+                    log(`❌ 配置 ${i + 1} 失败: ${error.name} - ${error.message}`, 'error');
+                    lastError = error;
+                }
+            }
+
+            if (!stream) {
+                log(`❌ 所有配置都失败了，最后一个错误: ${lastError?.name} - ${lastError?.message}`, 'error');
+                return;
+            }
+
+            // 显示视频
+            const video = document.getElementById('video');
+            video.srcObject = stream;
+            
+            // 等待视频加载
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('视频加载超时'));
+                }, 10000);
+
+                video.onloadedmetadata = () => {
+                    clearTimeout(timeout);
+                    log(`✅ 视频加载成功，尺寸: ${video.videoWidth} x ${video.videoHeight}`, 'success');
+                    resolve();
+                };
+
+                video.onerror = (error) => {
+                    clearTimeout(timeout);
+                    log(`❌ 视频加载错误: ${error}`, 'error');
+                    reject(error);
+                };
+            });
+
+            // 显示视频轨道信息
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                const settings = videoTrack.getSettings();
+                log(`视频轨道信息: ${JSON.stringify(settings)}`, 'info');
+                log(`✅ 摄像头测试完成`, 'success');
+            }
+        }
+
+        // 页面加载时自动测试
+        window.onload = function() {
+            log('页面加载完成，点击"测试摄像头"按钮开始测试', 'info');
+        };
+    </script>
+</body>
+</html> 
