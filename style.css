@@ -34,10 +34,11 @@ body {
     display: none;
 }
 
-/* 加载界面 */
+/* 加载界面 - 默认隐藏 */
 #loadingScreen {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     z-index: 1000;
+    display: none; /* 默认隐藏 */
 }
 
 .loading-content {
@@ -82,9 +83,10 @@ body {
     line-height: 1.4;
 }
 
-/* 启动界面 */
+/* 启动界面 - 默认显示 */
 #startScreen {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex; /* 默认显示 */
 }
 
 .start-content {
@@ -152,10 +154,11 @@ body {
     transform: translateY(-1px);
 }
 
-/* AR界面 */
+/* AR界面 - 默认隐藏 */
 #arScreen {
     background: #000;
     flex-direction: column;
+    display: none; /* 默认隐藏 */
 }
 
 .ar-header {

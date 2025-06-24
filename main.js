@@ -80,6 +80,7 @@ class OptimizedARApp {
             if (FAST_START_CONFIG.enableFastStart) {
                 this.isInitialized = true;
                 this.hideLoading();
+                this.showStartScreen(); // 明确显示启动界面
                 console.log('快速启动完成，界面已显示');
                 
                 // 后台异步加载资源
