@@ -255,10 +255,17 @@ class OptimizedARApp {
 
     async startAR() {
         console.log('开始AR体验...');
+        console.log('当前状态:', {
+            isInitialized: this.isInitialized,
+            resourcesLoaded: this.resourcesLoaded,
+            hasImageTracker: !!this.imageTracker,
+            hasAnimation: !!this.animation
+        });
         
+        // 放宽初始化检查，允许在资源未完全加载时启动
         if (!this.isInitialized) {
-            this.showError('AR组件尚未初始化完成，请稍后再试');
-            return;
+            console.log('应用未完全初始化，尝试继续启动...');
+            // 不阻止启动，而是继续尝试
         }
         
         try {
@@ -274,6 +281,12 @@ class OptimizedARApp {
             this.updateStatus('摄像头已启动，等待视频加载...');
             await this.waitForVideoLoad();
             
+            // 如果追踪器还没准备好，等待一下
+            if (!this.imageTracker) {
+                this.updateStatus('正在准备图像识别...');
+                await this.waitForTracker();
+            }
+            
             this.updateStatus('开始追踪marker...');
             this.startTracking();
             
@@ -281,6 +294,20 @@ class OptimizedARApp {
             console.error('启动AR失败:', error);
             this.showError('启动AR失败: ' + error.message);
         }
+    }
+
+    // 等待追踪器准备就绪
+    async waitForTracker() {
+        return new Promise((resolve) => {
+            const checkTracker = () => {
+                if (this.imageTracker) {
+                    resolve();
+                } else {
+                    setTimeout(checkTracker, 100);
+                }
+            };
+            checkTracker();
+        });
     }
 
     startTracking() {
@@ -321,7 +348,15 @@ class OptimizedARApp {
     }
 
     async detectMarker() {
-        if (!this.imageTracker || !this.ctx) return;
+        if (!this.imageTracker) {
+            console.log('图片追踪器未准备好，跳过检测');
+            return;
+        }
+        
+        if (!this.ctx) {
+            console.log('Canvas上下文未准备好，跳过检测');
+            return;
+        }
         
         try {
             const detectionResult = await this.imageTracker.detect(
@@ -330,7 +365,7 @@ class OptimizedARApp {
                 this.canvas.height
             );
             
-            if (detectionResult.detected) {
+            if (detectionResult && detectionResult.detected) {
                 this.showAnimation(detectionResult);
             } else {
                 this.hideAnimation();
@@ -338,15 +373,23 @@ class OptimizedARApp {
             
         } catch (error) {
             console.error('检测marker错误:', error);
+            // 不阻止继续检测
         }
     }
 
     showAnimation(detectionResult) {
-        if (!this.animation || !this.canvas) {
-            console.log('动画组件或canvas不存在', {
-                hasAnimation: !!this.animation,
-                hasCanvas: !!this.canvas
-            });
+        if (!this.animation) {
+            console.log('动画组件不存在，跳过显示');
+            return;
+        }
+        
+        if (!this.canvas) {
+            console.log('Canvas不存在，跳过显示');
+            return;
+        }
+        
+        if (!detectionResult || !detectionResult.position || !detectionResult.size) {
+            console.log('检测结果数据不完整，跳过显示');
             return;
         }
         
@@ -367,7 +410,7 @@ class OptimizedARApp {
                 position: position,
                 size: size,
                 animationLoaded: this.animation.isLoaded,
-                framesCount: this.animation.frames.length,
+                framesCount: this.animation.frames ? this.animation.frames.length : 0,
                 frameCount: this.animation.frameCount,
                 canvasSize: `${this.canvas.width}x${this.canvas.height}`
             });
@@ -377,6 +420,7 @@ class OptimizedARApp {
             
         } catch (error) {
             console.error('显示动画错误:', error);
+            this.updateStatus('动画显示失败: ' + error.message);
         }
     }
 
