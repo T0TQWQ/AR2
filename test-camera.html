@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄像头测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            max-width: 500px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>摄像头测试页面</h1>
+        <p>这个页面用于测试摄像头功能是否正常工作。</p>
+        
+        <div id="status" class="status info">准备测试摄像头...</div>
+        
+        <video id="video" autoplay playsinline muted></video>
+        
+        <div>
+            <button id="startBtn">启动摄像头</button>
+            <button id="stopBtn" disabled>停止摄像头</button>
+            <button id="backBtn">返回AR应用</button>
+        </div>
+        
+        <div id="info">
+            <h3>测试说明：</h3>
+            <ul>
+                <li>点击"启动摄像头"按钮测试摄像头权限</li>
+                <li>如果能看到视频画面，说明摄像头工作正常</li>
+                <li>如果出现错误，请检查浏览器权限设置</li>
+                <li>测试完成后点击"返回AR应用"</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        class CameraTest {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.backBtn = document.getElementById('backBtn');
+                this.status = document.getElementById('status');
+                this.stream = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.startBtn.addEventListener('click', () => this.startCamera());
+                this.stopBtn.addEventListener('click', () => this.stopCamera());
+                this.backBtn.addEventListener('click', () => this.goBack());
+            }
+            
+            async startCamera() {
+                try {
+                    this.updateStatus('正在请求摄像头权限...', 'info');
+                    this.startBtn.disabled = true;
+                    
+                    const constraints = {
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    };
+                    
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.video.srcObject = this.stream;
+                    
+                    this.updateStatus('摄像头启动成功！', 'success');
+                    this.stopBtn.disabled = false;
+                    
+                    console.log('摄像头测试成功');
+                    
+                } catch (error) {
+                    console.error('摄像头测试失败:', error);
+                    this.handleCameraError(error);
+                    this.startBtn.disabled = false;
+                }
+            }
+            
+            stopCamera() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                    this.video.srcObject = null;
+                }
+                
+                this.updateStatus('摄像头已停止', 'info');
+                this.startBtn.disabled = false;
+                this.stopBtn.disabled = true;
+            }
+            
+            handleCameraError(error) {
+                let message = '摄像头启动失败';
+                
+                switch (error.name) {
+                    case 'NotAllowedError':
+                        message = '摄像头权限被拒绝，请在浏览器设置中允许摄像头访问';
+                        break;
+                    case 'NotFoundError':
+                        message = '未找到摄像头设备';
+                        break;
+                    case 'NotSupportedError':
+                        message = '您的浏览器不支持摄像头功能';
+                        break;
+                    case 'NotReadableError':
+                        message = '摄像头被其他应用占用，请关闭其他使用摄像头的应用';
+                        break;
+                    case 'OverconstrainedError':
+                        message = '摄像头不支持请求的分辨率';
+                        break;
+                    default:
+                        message = `摄像头启动失败: ${error.message}`;
+                }
+                
+                this.updateStatus(message, 'error');
+            }
+            
+            updateStatus(message, type) {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+            }
+            
+            goBack() {
+                this.stopCamera();
+                window.location.href = '/';
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new CameraTest();
+        });
+    </script>
+</body>
+</html> 

@@ -2,6 +2,7 @@
   "name": "ar2-animation",
   "version": "1.0.0",
   "description": "透明底2D动画AR应用",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
@@ -12,7 +13,7 @@
     "three": "^0.158.0"
   },
   "devDependencies": {
-    "vite": "^5.0.0"
+    "vite": "^5.4.19"
   },
   "keywords": ["ar", "animation", "webxr", "threejs"],
   "author": "AR2 Developer",

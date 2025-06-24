@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR应用调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #ddd;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left-color: #ffc107;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left-color: #17a2b8;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AR应用调试信息</h1>
+        
+        <div id="browserInfo">
+            <h2>浏览器信息</h2>
+            <div id="browserStatus"></div>
+        </div>
+        
+        <div id="featureInfo">
+            <h2>功能支持</h2>
+            <div id="featureStatus"></div>
+        </div>
+        
+        <div id="cameraInfo">
+            <h2>摄像头测试</h2>
+            <div id="cameraStatus"></div>
+            <button id="testCamera">测试摄像头</button>
+        </div>
+        
+        <div id="logs">
+            <h2>调试日志</h2>
+            <div id="logOutput" class="log"></div>
+            <button id="clearLog">清除日志</button>
+        </div>
+        
+        <div>
+            <button onclick="window.location.href='/'">返回AR应用</button>
+            <button onclick="window.location.href='/test-camera.html'">摄像头测试页面</button>
+        </div>
+    </div>
+
+    <script>
+        class Debugger {
+            constructor() {
+                this.logOutput = document.getElementById('logOutput');
+                this.init();
+            }
+            
+            init() {
+                this.checkBrowserInfo();
+                this.checkFeatures();
+                this.setupCameraTest();
+                this.setupLogClear();
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                logEntry.className = type;
+                this.logOutput.appendChild(logEntry);
+                this.logOutput.scrollTop = this.logOutput.scrollHeight;
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+            
+            checkBrowserInfo() {
+                const status = document.getElementById('browserStatus');
+                
+                // 用户代理
+                const userAgent = navigator.userAgent;
+                this.log(`用户代理: ${userAgent}`);
+                
+                // 浏览器检测
+                let browserName = '未知';
+                let browserVersion = '未知';
+                
+                if (userAgent.includes('Chrome')) {
+                    browserName = 'Chrome';
+                    browserVersion = userAgent.match(/Chrome\/(\d+)/)?.[1] || '未知';
+                } else if (userAgent.includes('Safari')) {
+                    browserName = 'Safari';
+                    browserVersion = userAgent.match(/Version\/(\d+)/)?.[1] || '未知';
+                } else if (userAgent.includes('Firefox')) {
+                    browserName = 'Firefox';
+                    browserVersion = userAgent.match(/Firefox\/(\d+)/)?.[1] || '未知';
+                } else if (userAgent.includes('Edge')) {
+                    browserName = 'Edge';
+                    browserVersion = userAgent.match(/Edge\/(\d+)/)?.[1] || '未知';
+                }
+                
+                this.addStatusItem(status, `浏览器: ${browserName} ${browserVersion}`, 'info');
+                
+                // 平台
+                const platform = navigator.platform;
+                this.addStatusItem(status, `平台: ${platform}`, 'info');
+                
+                // 语言
+                const language = navigator.language;
+                this.addStatusItem(status, `语言: ${language}`, 'info');
+                
+                // 在线状态
+                const isOnline = navigator.onLine;
+                this.addStatusItem(status, `在线状态: ${isOnline ? '在线' : '离线'}`, isOnline ? 'success' : 'error');
+            }
+            
+            checkFeatures() {
+                const status = document.getElementById('featureStatus');
+                
+                // 检查各种API支持
+                const features = [
+                    { name: 'getUserMedia', test: () => !!navigator.mediaDevices?.getUserMedia },
+                    { name: 'WebGL', test: () => {
+                        const canvas = document.createElement('canvas');
+                        return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+                    }},
+                    { name: 'Canvas', test: () => {
+                        const canvas = document.createElement('canvas');
+                        return !!canvas.getContext('2d');
+                    }},
+                    { name: 'Web Workers', test: () => typeof Worker !== 'undefined' },
+                    { name: 'ES6 Modules', test: () => {
+                        try {
+                            new Function('import("")');
+                            return true;
+                        } catch {
+                            return false;
+                        }
+                    }},
+                    { name: 'Promise', test: () => typeof Promise !== 'undefined' },
+                    { name: 'async/await', test: () => {
+                        try {
+                            new Function('async () => {}');
+                            return true;
+                        } catch {
+                            return false;
+                        }
+                    }},
+                    { name: 'HTTPS', test: () => location.protocol === 'https:' || location.hostname === 'localhost' }
+                ];
+                
+                features.forEach(feature => {
+                    const isSupported = feature.test();
+                    this.addStatusItem(status, `${feature.name}: ${isSupported ? '支持' : '不支持'}`, 
+                                     isSupported ? 'success' : 'error');
+                });
+            }
+            
+            setupCameraTest() {
+                const testBtn = document.getElementById('testCamera');
+                const status = document.getElementById('cameraStatus');
+                
+                testBtn.addEventListener('click', async () => {
+                    this.log('开始测试摄像头...');
+                    this.addStatusItem(status, '正在测试摄像头...', 'info');
+                    
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        this.log('摄像头测试成功');
+                        this.addStatusItem(status, '摄像头测试成功', 'success');
+                        
+                        // 停止流
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                    } catch (error) {
+                        this.log(`摄像头测试失败: ${error.message}`, 'error');
+                        this.addStatusItem(status, `摄像头测试失败: ${error.name}`, 'error');
+                    }
+                });
+            }
+            
+            setupLogClear() {
+                const clearBtn = document.getElementById('clearLog');
+                clearBtn.addEventListener('click', () => {
+                    this.logOutput.innerHTML = '';
+                    this.log('日志已清除');
+                });
+            }
+            
+            addStatusItem(container, text, type) {
+                const item = document.createElement('div');
+                item.className = `status-item ${type}`;
+                item.textContent = text;
+                container.appendChild(item);
+            }
+        }
+        
+        // 页面加载完成后初始化调试器
+        document.addEventListener('DOMContentLoaded', () => {
+            new Debugger();
+        });
+    </script>
+</body>
+</html> 
