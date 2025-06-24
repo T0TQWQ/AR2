@@ -3,7 +3,8 @@ export class ImageTracker {
         this.lastDetection = null;
         this.detectionTimeout = 1000; // 1秒超时
         this.templates = [];
-        this.threshold = 0.7; // 匹配阈值
+        this.threshold = 0.3; // 降低匹配阈值，提高检测成功率
+        this.debugMode = true; // 启用调试模式
     }
 
     // 添加模板图片
@@ -26,10 +27,13 @@ export class ImageTracker {
                     height: canvas.height
                 });
                 
-                console.log(`模板图片 "${name}" 添加成功`);
+                console.log(`模板图片 "${name}" 添加成功，尺寸: ${canvas.width}x${canvas.height}`);
                 resolve();
             };
-            img.onerror = reject;
+            img.onerror = (error) => {
+                console.error(`模板图片 "${name}" 加载失败:`, error);
+                reject(error);
+            };
             img.src = imageUrl;
         });
     }
@@ -50,7 +54,12 @@ export class ImageTracker {
             for (const template of this.templates) {
                 const match = this.matchTemplate(frameData, template, width, height);
                 
+                if (this.debugMode && match) {
+                    console.log(`模板 "${template.name}" 匹配度: ${match.confidence.toFixed(3)}`);
+                }
+                
                 if (match && match.confidence > this.threshold) {
+                    console.log(`✅ 检测到图片 "${template.name}"，匹配度: ${match.confidence.toFixed(3)}`);
                     this.lastDetection = {
                         timestamp: Date.now(),
                         result: {
@@ -87,14 +96,17 @@ export class ImageTracker {
         
         // 如果模板太大，跳过
         if (templateWidth > frameWidth || templateHeight > frameHeight) {
+            if (this.debugMode) {
+                console.log(`模板太大，跳过: ${templateWidth}x${templateHeight} vs ${frameWidth}x${frameHeight}`);
+            }
             return null;
         }
 
         let bestMatch = null;
         let bestConfidence = 0;
 
-        // 在帧中搜索模板
-        const step = Math.max(1, Math.floor(Math.min(templateWidth, templateHeight) / 10));
+        // 在帧中搜索模板 - 减少搜索步长以提高精度
+        const step = Math.max(1, Math.floor(Math.min(templateWidth, templateHeight) / 20));
         
         for (let y = 0; y <= frameHeight - templateHeight; y += step) {
             for (let x = 0; x <= frameWidth - templateWidth; x += step) {
@@ -131,9 +143,9 @@ export class ImageTracker {
                 const templateIndex = ((templateY + y) * templateWidth + (templateX + x)) * 4;
 
                 // 计算RGB差异
-                const rDiff = Math.abs(frameData.data[frameIndex] - templateData.data[templateIndex]);
-                const gDiff = Math.abs(frameData.data[frameIndex + 1] - templateData.data[templateIndex + 1]);
-                const bDiff = Math.abs(frameData.data[frameIndex + 2] - templateData.data[templateIndex + 2]);
+                const rDiff = Math.abs(frameData.data[frameIndex] - templateData.data[frameIndex]);
+                const gDiff = Math.abs(frameData.data[frameIndex + 1] - templateData.data[frameIndex + 1]);
+                const bDiff = Math.abs(frameData.data[frameIndex + 2] - templateData.data[frameIndex + 2]);
 
                 totalDiff += (rDiff + gDiff + bDiff) / 3;
             }

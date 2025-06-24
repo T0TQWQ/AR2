@@ -1,5 +1,4 @@
 import { ARAnimation } from './ar-animation.js';
-import { QRCodeTracker } from './qr-tracker.js';
 import { ImageTracker } from './image-tracker.js';
 
 console.log('AR应用开始加载...');
@@ -40,6 +39,11 @@ class SimpleARApp {
     constructor() {
         console.log('初始化SimpleARApp...');
         this.isInitialized = false;
+        this.isTracking = false;
+        this.animation = null;
+        this.imageTracker = null;
+        this.detectionCanvas = null;
+        this.detectionCtx = null;
         this.init();
     }
 
@@ -48,13 +52,23 @@ class SimpleARApp {
         
         if (!checkBasicFeatures()) {
             console.error('基本功能检查失败');
+            this.hideLoading();
+            this.showError('应用初始化失败：基本功能检查失败');
             return;
         }
         
-        this.initUI();
-        this.initEventListeners();
-        this.isInitialized = true;
-        console.log('SimpleARApp初始化完成');
+        try {
+            this.initUI();
+            this.initEventListeners();
+            
+            // 异步初始化追踪器
+            this.initTrackersAsync();
+            
+        } catch (error) {
+            console.error('初始化过程中出错:', error);
+            this.hideLoading();
+            this.showError('应用初始化失败: ' + error.message);
+        }
     }
 
     initUI() {
@@ -73,7 +87,169 @@ class SimpleARApp {
             this.ctx = this.canvas.getContext('2d');
         }
         
+        // 创建检测用的canvas
+        this.detectionCanvas = document.createElement('canvas');
+        this.detectionCtx = this.detectionCanvas.getContext('2d');
+        
         console.log('UI元素初始化完成');
+    }
+
+    async initTrackersAsync() {
+        try {
+            console.log('开始异步初始化追踪器...');
+            
+            // 初始化图片追踪器
+            this.imageTracker = new ImageTracker();
+            
+            // 初始化AR动画
+            this.animation = new ARAnimation();
+            
+            // 并行加载GIF动画和marker模板
+            await Promise.all([
+                this.loadGifAnimation(),
+                this.loadMarkerTemplate()
+            ]);
+            
+            this.isInitialized = true;
+            console.log('SimpleARApp初始化完成');
+            
+            // 隐藏加载界面
+            this.hideLoading();
+            
+        } catch (error) {
+            console.error('追踪器初始化失败:', error);
+            this.hideLoading();
+            this.showError('AR组件初始化失败: ' + error.message);
+        }
+    }
+
+    async loadGifAnimation() {
+        try {
+            console.log('加载GIF动画...');
+            
+            // 尝试多个可能的GIF路径
+            const gifPaths = [
+                '/images/ts.GIF',
+                '/ar2-animation/images/ts.GIF',
+                './images/ts.GIF',
+                '../images/ts.GIF',
+                'images/ts.GIF',
+                '/public/images/ts.GIF',
+                '/images/animation.gif',
+                '/ar2-animation/images/animation.gif',
+                './images/animation.gif',
+                '../images/animation.gif',
+                'images/animation.gif',
+                '/public/images/animation.gif'
+            ];
+            
+            let gifLoaded = false;
+            
+            for (const path of gifPaths) {
+                try {
+                    // 添加超时处理
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('加载超时')), 5000);
+                    });
+                    
+                    await Promise.race([
+                        this.animation.loadGif(path),
+                        timeoutPromise
+                    ]);
+                    
+                    console.log(`成功加载GIF动画: ${path}`);
+                    gifLoaded = true;
+                    break;
+                } catch (error) {
+                    console.log(`无法从 ${path} 加载GIF:`, error.message);
+                }
+            }
+            
+            if (!gifLoaded) {
+                console.warn('无法加载GIF动画，将显示默认效果');
+            }
+            
+        } catch (error) {
+            console.error('加载GIF动画失败:', error);
+            // 不抛出错误，允许应用继续运行
+        }
+    }
+
+    async loadMarkerTemplate() {
+        try {
+            console.log('加载marker模板...');
+            
+            // 尝试多个可能的路径
+            const markerPaths = [
+                '/images/marker.png',
+                '/ar2-animation/images/marker.png',
+                './images/marker.png',
+                '../images/marker.png',
+                'images/marker.png',
+                '/public/images/marker.png'
+            ];
+            
+            let markerLoaded = false;
+            
+            for (const path of markerPaths) {
+                try {
+                    // 添加超时处理
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('加载超时')), 5000);
+                    });
+                    
+                    await Promise.race([
+                        this.imageTracker.addTemplate(path, 'marker'),
+                        timeoutPromise
+                    ]);
+                    
+                    console.log(`成功加载marker模板: ${path}`);
+                    markerLoaded = true;
+                    break;
+                } catch (error) {
+                    console.log(`无法从 ${path} 加载marker:`, error.message);
+                }
+            }
+            
+            if (!markerLoaded) {
+                console.warn('无法加载marker.png，将使用通用图片检测');
+                // 添加一个简单的测试模板
+                await this.addTestTemplate();
+            }
+            
+        } catch (error) {
+            console.error('加载marker模板失败:', error);
+            // 不抛出错误，允许应用继续运行
+        }
+    }
+
+    async addTestTemplate() {
+        try {
+            // 创建一个简单的测试模板
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 100;
+            canvas.height = 100;
+            
+            // 绘制一个简单的测试图案
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 100, 100);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, 80, 80);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(30, 30, 40, 40);
+            
+            // 将canvas转换为blob URL
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                this.imageTracker.addTemplate(url, 'test-marker');
+                console.log('添加测试模板成功');
+            });
+            
+        } catch (error) {
+            console.error('添加测试模板失败:', error);
+        }
     }
 
     initEventListeners() {
@@ -157,7 +333,10 @@ class SimpleARApp {
             
             // 切换到AR界面
             this.showARScreen();
-            this.updateStatus('摄像头已启动，请对准二维码或图片');
+            this.updateStatus('摄像头已启动，请对准marker.png图片');
+            
+            // 开始追踪
+            this.startTracking();
             
             console.log('AR启动成功');
             
@@ -165,6 +344,105 @@ class SimpleARApp {
             console.error('AR启动失败:', error);
             this.hideLoading();
             this.showError('无法启动摄像头: ' + error.message);
+        }
+    }
+
+    startTracking() {
+        if (this.isTracking) return;
+        
+        console.log('开始追踪...');
+        this.isTracking = true;
+        this.trackFrame();
+    }
+
+    stopTracking() {
+        console.log('停止追踪...');
+        this.isTracking = false;
+        
+        // 停止动画
+        if (this.animation) {
+            this.animation.stop();
+        }
+    }
+
+    trackFrame() {
+        if (!this.isTracking || !this.video || !this.canvas) return;
+        
+        try {
+            // 设置canvas尺寸
+            this.canvas.width = this.video.videoWidth;
+            this.canvas.height = this.video.videoHeight;
+            this.detectionCanvas.width = this.video.videoWidth;
+            this.detectionCanvas.height = this.video.videoHeight;
+            
+            // 绘制视频帧到canvas
+            this.ctx.drawImage(this.video, 0, 0);
+            this.detectionCtx.drawImage(this.video, 0, 0);
+            
+            // 检测marker图片
+            this.detectMarker();
+            
+        } catch (error) {
+            console.error('追踪帧错误:', error);
+        }
+        
+        // 继续下一帧
+        if (this.isTracking) {
+            requestAnimationFrame(() => this.trackFrame());
+        }
+    }
+
+    async detectMarker() {
+        try {
+            if (!this.imageTracker) return;
+            
+            const result = await this.imageTracker.detect(
+                this.detectionCtx, 
+                this.detectionCanvas.width, 
+                this.detectionCanvas.height
+            );
+            
+            if (result.detected) {
+                console.log('✅ 检测到marker图片:', result);
+                this.updateStatus('检测到marker图片！显示动画中...');
+                
+                // 显示2D动画
+                this.showAnimation(result);
+            } else {
+                // 尝试使用简化检测
+                const simpleResult = this.imageTracker.detectSimple(
+                    this.detectionCtx, 
+                    this.detectionCanvas.width, 
+                    this.detectionCanvas.height
+                );
+                
+                if (simpleResult.detected) {
+                    console.log('✅ 简化检测到marker图片:', simpleResult);
+                    this.updateStatus('检测到marker图片！显示动画中...');
+                    
+                    // 显示2D动画
+                    this.showAnimation(simpleResult);
+                }
+            }
+            
+        } catch (error) {
+            console.error('marker检测错误:', error);
+        }
+    }
+
+    showAnimation(detectionResult) {
+        try {
+            if (!this.animation) return;
+            
+            // 计算动画位置
+            const position = detectionResult.position || { x: 0, y: 0 };
+            const size = detectionResult.size || { width: 100, height: 100 };
+            
+            // 启动动画
+            this.animation.start(this.canvas, position, size);
+            
+        } catch (error) {
+            console.error('显示动画错误:', error);
         }
     }
 
@@ -245,6 +523,9 @@ class SimpleARApp {
     stopAR() {
         console.log('停止AR...');
         
+        // 停止追踪
+        this.stopTracking();
+        
         // 停止视频流
         if (this.video && this.video.srcObject) {
             const tracks = this.video.srcObject.getTracks();
@@ -271,32 +552,44 @@ class SimpleARApp {
     }
 
     showLoading() {
+        console.log('显示加载界面...');
         if (this.loadingScreen) {
             this.loadingScreen.classList.remove('hidden');
             this.startScreen.classList.add('hidden');
             this.arScreen.classList.add('hidden');
+        } else {
+            console.error('加载界面元素未找到');
         }
     }
 
     hideLoading() {
+        console.log('隐藏加载界面...');
         if (this.loadingScreen) {
             this.loadingScreen.classList.add('hidden');
+        } else {
+            console.error('加载界面元素未找到');
         }
     }
 
     showStartScreen() {
+        console.log('显示启动界面...');
         if (this.startScreen) {
             this.startScreen.classList.remove('hidden');
             this.arScreen.classList.add('hidden');
             this.loadingScreen.classList.add('hidden');
+        } else {
+            console.error('启动界面元素未找到');
         }
     }
 
     showARScreen() {
+        console.log('显示AR界面...');
         if (this.arScreen) {
             this.arScreen.classList.remove('hidden');
             this.startScreen.classList.add('hidden');
             this.loadingScreen.classList.add('hidden');
+        } else {
+            console.error('AR界面元素未找到');
         }
     }
 
@@ -329,9 +622,33 @@ function initApp() {
             console.log('AR应用初始化完成');
         } catch (error) {
             console.error('AR应用初始化失败:', error);
+            
+            // 尝试隐藏加载界面
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+            }
+            
+            // 显示错误信息
             alert('应用初始化失败: ' + error.message);
         }
     }, 100);
+    
+    // 添加超时保护
+    setTimeout(() => {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+            console.warn('应用初始化超时，强制隐藏加载界面');
+            loadingScreen.classList.add('hidden');
+            
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen) {
+                startScreen.classList.remove('hidden');
+            }
+            
+            alert('应用初始化超时，请刷新页面重试');
+        }
+    }, 15000); // 15秒超时
 }
 
 // 监听页面加载事件
