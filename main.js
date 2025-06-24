@@ -186,12 +186,21 @@ class OptimizedARApp {
     async createAnimation() {
         const animation = new ARAnimation();
         
+        console.log('创建动画组件...');
+        
         // 尝试加载PNG动画，但不阻塞
         try {
             await animation.loadFrames();
             console.log('PNG动画加载成功');
+            console.log('动画状态:', {
+                isLoaded: animation.isLoaded,
+                frameCount: animation.frameCount,
+                framesLength: animation.frames.length,
+                fps: animation.fps
+            });
         } catch (error) {
             console.log('PNG动画加载失败:', error.message);
+            // 即使加载失败，也返回动画组件，避免主应用崩溃
         }
         
         return animation;
@@ -342,14 +351,16 @@ class OptimizedARApp {
         }
         
         try {
+            // 优化位置计算：显示在marker正上方
             const position = {
                 x: detectionResult.position.x + detectionResult.size.width / 2,
-                y: detectionResult.position.y - detectionResult.size.height / 2 // 显示在marker上方
+                y: detectionResult.position.y - detectionResult.size.height * 0.8 // 在marker上方，留一些间距
             };
             
+            // 优化尺寸计算：确保动画足够大且清晰
             const size = {
-                width: detectionResult.size.width,
-                height: detectionResult.size.height
+                width: Math.max(detectionResult.size.width * 1.5, 150), // 比marker大1.5倍，最小150px
+                height: Math.max(detectionResult.size.height * 1.5, 150)
             };
             
             console.log('准备显示动画', {
@@ -357,7 +368,8 @@ class OptimizedARApp {
                 size: size,
                 animationLoaded: this.animation.isLoaded,
                 framesCount: this.animation.frames.length,
-                frameCount: this.animation.frameCount
+                frameCount: this.animation.frameCount,
+                canvasSize: `${this.canvas.width}x${this.canvas.height}`
             });
             
             this.animation.start(this.canvas, position, size);
