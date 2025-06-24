@@ -1,12 +1,9 @@
-import * as THREE from 'three';
+// 移除Three.js依赖，只使用原生Canvas API
+// import * as THREE from 'three';
 
 export class ARAnimation {
     constructor() {
         this.canvas = null;
-        this.scene = null;
-        this.camera = null;
-        this.renderer = null;
-        this.animationGroup = null;
         this.isVisible = false;
         this.isRunning = false;
         this.targetPosition = { x: 0, y: 0 };
@@ -15,10 +12,13 @@ export class ARAnimation {
         // GIF动画相关
         this.gifImage = null;
         this.gifLoaded = false;
+        this.gifElement = null; // 用于显示动态GIF的img元素
         
         // 2D Canvas动画相关
         this.ctx = null;
         this.animationId = null;
+        
+        console.log('AR动画类初始化完成');
     }
 
     start(canvas, position, size) {
@@ -32,7 +32,7 @@ export class ARAnimation {
         if (!this.isRunning) {
             this.isRunning = true;
             this.isVisible = true;
-            this.animate();
+            this.showGifAnimation();
         }
         
         console.log('AR动画已启动');
@@ -49,6 +49,11 @@ export class ARAnimation {
             this.animationId = null;
         }
         
+        // 隐藏GIF元素
+        if (this.gifElement) {
+            this.gifElement.style.display = 'none';
+        }
+        
         // 清除canvas
         if (this.ctx && this.canvas) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -57,25 +62,17 @@ export class ARAnimation {
         console.log('AR动画已停止');
     }
 
-    animate() {
-        if (!this.isRunning || !this.ctx || !this.canvas) return;
+    showGifAnimation() {
+        if (!this.isRunning || !this.gifElement) return;
         
-        // 清除之前的绘制
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // 绘制GIF动画
-        this.drawGifAnimation();
-        
-        // 继续动画循环
-        this.animationId = requestAnimationFrame(() => this.animate());
-    }
-
-    drawGifAnimation() {
-        if (!this.ctx || !this.gifImage) return;
-        
+        // 计算GIF的显示位置和大小
         const centerX = this.targetPosition.x;
         const centerY = this.targetPosition.y;
-        const size = Math.min(this.targetSize.width, this.targetSize.height) * 0.8;
+        
+        // 使用更大的尺寸，确保GIF动画足够大且清晰
+        const minSize = 150;
+        const maxSize = Math.max(this.targetSize.width, this.targetSize.height);
+        const size = Math.max(minSize, maxSize * 1.2); // 比目标尺寸稍大
         
         // 计算GIF的绘制位置和大小
         const gifWidth = this.gifImage.width;
@@ -83,11 +80,36 @@ export class ARAnimation {
         const scale = Math.min(size / gifWidth, size / gifHeight);
         const drawWidth = gifWidth * scale;
         const drawHeight = gifHeight * scale;
+        
+        // 计算左上角位置（GIF元素使用左上角定位）
         const drawX = centerX - drawWidth / 2;
         const drawY = centerY - drawHeight / 2;
         
-        // 绘制GIF
-        this.ctx.drawImage(this.gifImage, drawX, drawY, drawWidth, drawHeight);
+        // 边界检查，确保GIF不会超出屏幕
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let finalX = Math.max(10, Math.min(drawX, viewportWidth - drawWidth - 10));
+        let finalY = Math.max(10, Math.min(drawY, viewportHeight - drawHeight - 10));
+        
+        // 设置GIF元素的位置和大小
+        this.gifElement.style.position = 'fixed'; // 使用fixed定位，相对于视口
+        this.gifElement.style.left = finalX + 'px';
+        this.gifElement.style.top = finalY + 'px';
+        this.gifElement.style.width = drawWidth + 'px';
+        this.gifElement.style.height = drawHeight + 'px';
+        this.gifElement.style.display = 'block';
+        this.gifElement.style.zIndex = '1000';
+        this.gifElement.style.pointerEvents = 'none'; // 防止干扰触摸事件
+        
+        console.log('GIF动画显示:', {
+            originalPosition: { x: centerX, y: centerY },
+            calculatedPosition: { x: drawX, y: drawY },
+            finalPosition: { x: finalX, y: finalY },
+            size: { width: drawWidth, height: drawHeight },
+            originalSize: { width: gifWidth, height: gifHeight },
+            viewport: { width: viewportWidth, height: viewportHeight }
+        });
     }
 
     // 加载GIF动画
@@ -96,7 +118,11 @@ export class ARAnimation {
             this.gifImage = new Image();
             this.gifImage.onload = () => {
                 this.gifLoaded = true;
-                console.log('GIF动画加载成功:', gifPath);
+                console.log('GIF动画加载成功:', gifPath, '尺寸:', this.gifImage.width, 'x', this.gifImage.height);
+                
+                // 创建用于显示的img元素
+                this.createGifElement(gifPath);
+                
                 resolve();
             };
             this.gifImage.onerror = (error) => {
@@ -107,9 +133,28 @@ export class ARAnimation {
         });
     }
 
-    // 兼容旧版本的Three.js方法
+    createGifElement(gifPath) {
+        // 移除旧的GIF元素
+        if (this.gifElement) {
+            this.gifElement.remove();
+        }
+        
+        // 创建新的GIF元素
+        this.gifElement = document.createElement('img');
+        this.gifElement.src = gifPath;
+        this.gifElement.style.display = 'none'; // 初始隐藏
+        this.gifElement.style.position = 'absolute';
+        this.gifElement.style.zIndex = '1000';
+        this.gifElement.style.pointerEvents = 'none';
+        
+        // 添加到body中
+        document.body.appendChild(this.gifElement);
+        
+        console.log('GIF元素已创建并添加到页面');
+    }
+
+    // 兼容旧版本的方法
     init() {
-        // 这个方法保留用于兼容性，但现在主要使用2D Canvas动画
         console.log('AR动画初始化完成');
     }
 
@@ -128,12 +173,10 @@ export class ARAnimation {
     dispose() {
         this.stop();
         
-        if (this.renderer) {
-            this.renderer.dispose();
-        }
-        
-        if (this.scene) {
-            this.scene.clear();
+        // 移除GIF元素
+        if (this.gifElement) {
+            this.gifElement.remove();
+            this.gifElement = null;
         }
         
         console.log('AR动画资源已释放');

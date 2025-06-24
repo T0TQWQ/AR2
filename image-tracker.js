@@ -1,10 +1,12 @@
 export class ImageTracker {
     constructor() {
         this.lastDetection = null;
-        this.detectionTimeout = 1000; // 1秒超时
+        this.detectionTimeout = 500; // 减少到500ms，提高响应速度
         this.templates = [];
-        this.threshold = 0.3; // 降低匹配阈值，提高检测成功率
-        this.debugMode = true; // 启用调试模式
+        this.threshold = 0.25; // 进一步降低匹配阈值，提高检测成功率
+        this.debugMode = false; // 关闭调试模式以提高性能
+        this.lastDetectionTime = 0;
+        this.detectionInterval = 100; // 每100ms检测一次，减少CPU使用
     }
 
     // 添加模板图片
@@ -41,9 +43,16 @@ export class ImageTracker {
     // 检测图片
     async detect(ctx, width, height) {
         try {
+            // 限制检测频率
+            const now = Date.now();
+            if (now - this.lastDetectionTime < this.detectionInterval) {
+                return this.lastDetection ? this.lastDetection.result : { detected: false };
+            }
+            this.lastDetectionTime = now;
+
             // 检查是否有有效的检测结果
             if (this.lastDetection && 
-                Date.now() - this.lastDetection.timestamp < this.detectionTimeout) {
+                now - this.lastDetection.timestamp < this.detectionTimeout) {
                 return this.lastDetection.result;
             }
 
@@ -54,14 +63,10 @@ export class ImageTracker {
             for (const template of this.templates) {
                 const match = this.matchTemplate(frameData, template, width, height);
                 
-                if (this.debugMode && match) {
-                    console.log(`模板 "${template.name}" 匹配度: ${match.confidence.toFixed(3)}`);
-                }
-                
                 if (match && match.confidence > this.threshold) {
                     console.log(`✅ 检测到图片 "${template.name}"，匹配度: ${match.confidence.toFixed(3)}`);
                     this.lastDetection = {
-                        timestamp: Date.now(),
+                        timestamp: now,
                         result: {
                             detected: true,
                             type: 'image',
@@ -77,7 +82,7 @@ export class ImageTracker {
 
             // 如果没有检测到图片，清除上次检测结果
             if (this.lastDetection && 
-                Date.now() - this.lastDetection.timestamp > this.detectionTimeout) {
+                now - this.lastDetection.timestamp > this.detectionTimeout) {
                 this.lastDetection = null;
             }
 
@@ -89,27 +94,31 @@ export class ImageTracker {
         }
     }
 
-    // 模板匹配算法
+    // 模板匹配算法 - 优化版本
     matchTemplate(frameData, template, frameWidth, frameHeight) {
         const templateWidth = template.width;
         const templateHeight = template.height;
         
         // 如果模板太大，跳过
         if (templateWidth > frameWidth || templateHeight > frameHeight) {
-            if (this.debugMode) {
-                console.log(`模板太大，跳过: ${templateWidth}x${templateHeight} vs ${frameWidth}x${frameHeight}`);
-            }
             return null;
         }
 
         let bestMatch = null;
         let bestConfidence = 0;
 
-        // 在帧中搜索模板 - 减少搜索步长以提高精度
-        const step = Math.max(1, Math.floor(Math.min(templateWidth, templateHeight) / 20));
+        // 增加搜索步长以提高性能
+        const step = Math.max(2, Math.floor(Math.min(templateWidth, templateHeight) / 15));
         
-        for (let y = 0; y <= frameHeight - templateHeight; y += step) {
-            for (let x = 0; x <= frameWidth - templateWidth; x += step) {
+        // 限制搜索范围，只搜索中心区域
+        const searchMargin = Math.min(100, Math.floor(Math.min(frameWidth, frameHeight) * 0.1));
+        const startX = searchMargin;
+        const startY = searchMargin;
+        const endX = frameWidth - templateWidth - searchMargin;
+        const endY = frameHeight - templateHeight - searchMargin;
+        
+        for (let y = startY; y <= endY; y += step) {
+            for (let x = startX; x <= endX; x += step) {
                 const confidence = this.calculateSimilarity(
                     frameData, template.imageData,
                     x, y, frameWidth,

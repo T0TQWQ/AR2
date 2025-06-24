@@ -97,6 +97,7 @@ class SimpleARApp {
     async initTrackersAsync() {
         try {
             console.log('开始异步初始化追踪器...');
+            this.updateStatus('正在初始化AR组件...');
             
             // 初始化图片追踪器
             this.imageTracker = new ImageTracker();
@@ -104,17 +105,15 @@ class SimpleARApp {
             // 初始化AR动画
             this.animation = new ARAnimation();
             
-            // 并行加载GIF动画和marker模板
-            await Promise.all([
-                this.loadGifAnimation(),
-                this.loadMarkerTemplate()
-            ]);
-            
+            // 设置快速启动标志
             this.isInitialized = true;
-            console.log('SimpleARApp初始化完成');
+            this.updateStatus('AR组件初始化完成！可以开始使用了');
             
-            // 隐藏加载界面
+            // 隐藏加载界面，允许用户立即开始使用
             this.hideLoading();
+            
+            // 后台继续加载资源，但不阻塞用户操作
+            this.loadResourcesInBackground();
             
         } catch (error) {
             console.error('追踪器初始化失败:', error);
@@ -123,33 +122,43 @@ class SimpleARApp {
         }
     }
 
+    async loadResourcesInBackground() {
+        try {
+            console.log('后台加载资源...');
+            
+            // 并行加载GIF动画和marker模板，但使用更短的超时时间
+            await Promise.all([
+                this.loadGifAnimation(),
+                this.loadMarkerTemplate()
+            ]);
+            
+            console.log('所有资源加载完成');
+            
+        } catch (error) {
+            console.error('后台资源加载失败:', error);
+            // 不显示错误，因为用户已经可以开始使用了
+        }
+    }
+
     async loadGifAnimation() {
         try {
             console.log('加载GIF动画...');
+            this.updateStatus('正在加载动画文件...');
             
-            // 尝试多个可能的GIF路径
+            // 只尝试最可能的路径，减少加载时间
             const gifPaths = [
                 '/images/ts.GIF',
                 '/ar2-animation/images/ts.GIF',
-                './images/ts.GIF',
-                '../images/ts.GIF',
-                'images/ts.GIF',
-                '/public/images/ts.GIF',
-                '/images/animation.gif',
-                '/ar2-animation/images/animation.gif',
-                './images/animation.gif',
-                '../images/animation.gif',
-                'images/animation.gif',
-                '/public/images/animation.gif'
+                'images/ts.GIF'
             ];
             
             let gifLoaded = false;
             
             for (const path of gifPaths) {
                 try {
-                    // 添加超时处理
+                    // 缩短超时时间到2秒
                     const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('加载超时')), 5000);
+                        setTimeout(() => reject(new Error('加载超时')), 2000);
                     });
                     
                     await Promise.race([
@@ -158,6 +167,7 @@ class SimpleARApp {
                     ]);
                     
                     console.log(`成功加载GIF动画: ${path}`);
+                    this.updateStatus('动画加载完成！');
                     gifLoaded = true;
                     break;
                 } catch (error) {
@@ -167,10 +177,12 @@ class SimpleARApp {
             
             if (!gifLoaded) {
                 console.warn('无法加载GIF动画，将显示默认效果');
+                this.updateStatus('动画加载失败，使用默认效果');
             }
             
         } catch (error) {
             console.error('加载GIF动画失败:', error);
+            this.updateStatus('动画加载失败');
             // 不抛出错误，允许应用继续运行
         }
     }
@@ -178,24 +190,22 @@ class SimpleARApp {
     async loadMarkerTemplate() {
         try {
             console.log('加载marker模板...');
+            this.updateStatus('正在加载识别模板...');
             
-            // 尝试多个可能的路径
+            // 只尝试最可能的路径
             const markerPaths = [
                 '/images/marker.png',
                 '/ar2-animation/images/marker.png',
-                './images/marker.png',
-                '../images/marker.png',
-                'images/marker.png',
-                '/public/images/marker.png'
+                'images/marker.png'
             ];
             
             let markerLoaded = false;
             
             for (const path of markerPaths) {
                 try {
-                    // 添加超时处理
+                    // 缩短超时时间到2秒
                     const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('加载超时')), 5000);
+                        setTimeout(() => reject(new Error('加载超时')), 2000);
                     });
                     
                     await Promise.race([
@@ -204,6 +214,7 @@ class SimpleARApp {
                     ]);
                     
                     console.log(`成功加载marker模板: ${path}`);
+                    this.updateStatus('模板加载完成！');
                     markerLoaded = true;
                     break;
                 } catch (error) {
@@ -213,12 +224,14 @@ class SimpleARApp {
             
             if (!markerLoaded) {
                 console.warn('无法加载marker.png，将使用通用图片检测');
+                this.updateStatus('模板加载失败，使用通用检测');
                 // 添加一个简单的测试模板
                 await this.addTestTemplate();
             }
             
         } catch (error) {
             console.error('加载marker模板失败:', error);
+            this.updateStatus('模板加载失败');
             // 不抛出错误，允许应用继续运行
         }
     }
@@ -434,9 +447,28 @@ class SimpleARApp {
         try {
             if (!this.animation) return;
             
-            // 计算动画位置
-            const position = detectionResult.position || { x: 0, y: 0 };
-            const size = detectionResult.size || { width: 100, height: 100 };
+            // 使用检测到的marker位置
+            const markerPosition = detectionResult.position || { x: 0, y: 0 };
+            const markerSize = detectionResult.size || { width: 100, height: 100 };
+            
+            // 计算动画位置 - 显示在marker正上方
+            const position = {
+                x: markerPosition.x,  // 与marker水平对齐
+                y: markerPosition.y - markerSize.height * 0.8  // 在marker上方，留一些间距
+            };
+            
+            // 使用合适的尺寸，基于marker大小
+            const size = {
+                width: Math.max(markerSize.width * 1.2, 150),   // 比marker稍大，最小150px
+                height: Math.max(markerSize.height * 1.2, 150)  // 比marker稍大，最小150px
+            };
+            
+            console.log('显示动画:', { 
+                markerPosition, 
+                markerSize, 
+                animationPosition: position, 
+                animationSize: size 
+            });
             
             // 启动动画
             this.animation.start(this.canvas, position, size);
@@ -525,6 +557,11 @@ class SimpleARApp {
         
         // 停止追踪
         this.stopTracking();
+        
+        // 停止动画
+        if (this.animation) {
+            this.animation.stop();
+        }
         
         // 停止视频流
         if (this.video && this.video.srcObject) {
