@@ -148,14 +148,14 @@ class SimpleARApp {
             });
             
             await Promise.race([
-                this.animation.loadGif(gifPath),
+                this.animation.loadFrames(), // 直接加载PNG逐帧动画
                 timeoutPromise
             ]);
             
-            console.log(`GIF加载成功: ${gifPath}`);
+            console.log(`PNG逐帧动画加载成功`);
             
         } catch (error) {
-            console.log(`GIF加载失败: ${error.message}`);
+            console.log(`PNG逐帧动画加载失败: ${error.message}`);
         }
     }
 

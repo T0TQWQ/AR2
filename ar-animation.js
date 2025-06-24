@@ -9,11 +9,13 @@ export class ARAnimation {
         this.targetPosition = { x: 0, y: 0 };
         this.targetSize = { width: 100, height: 100 };
         
-        // GIF动画相关
-        this.gifImage = null;
-        this.gifLoaded = false;
-        this.gifElement = null;
-        this.gifPath = null; // 存储GIF路径，延迟创建元素
+        // PNG逐帧动画相关
+        this.frames = []; // 存储所有帧图片
+        this.currentFrame = 0; // 当前帧索引
+        this.frameCount = 0; // 总帧数
+        this.fps = 10; // 帧率，每秒10帧
+        this.lastFrameTime = 0; // 上一帧时间
+        this.isLoaded = false; // 是否加载完成
         
         // 2D Canvas动画相关
         this.ctx = null;
@@ -33,7 +35,8 @@ export class ARAnimation {
         if (!this.isRunning) {
             this.isRunning = true;
             this.isVisible = true;
-            this.showGifAnimation();
+            this.lastFrameTime = performance.now();
+            this.animate();
         }
         
         console.log('AR动画已启动');
@@ -50,11 +53,6 @@ export class ARAnimation {
             this.animationId = null;
         }
         
-        // 隐藏GIF元素
-        if (this.gifElement) {
-            this.gifElement.style.display = 'none';
-        }
-        
         // 清除canvas
         if (this.ctx && this.canvas) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -63,113 +61,118 @@ export class ARAnimation {
         console.log('AR动画已停止');
     }
 
-    showGifAnimation() {
-        if (!this.isRunning) return;
+    // 逐帧动画循环
+    animate() {
+        if (!this.isRunning || !this.ctx || !this.canvas) return;
         
-        // 延迟创建GIF元素
-        this.createGifElementIfNeeded();
+        const currentTime = performance.now();
+        const deltaTime = currentTime - this.lastFrameTime;
         
-        if (!this.gifElement) {
-            console.log('GIF元素尚未创建，跳过显示');
-            return;
+        // 根据帧率更新帧
+        if (deltaTime >= (1000 / this.fps)) {
+            this.currentFrame = (this.currentFrame + 1) % this.frameCount;
+            this.lastFrameTime = currentTime;
         }
         
-        // 计算GIF的显示位置和大小
+        // 清除之前的绘制
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 绘制当前帧
+        this.drawCurrentFrame();
+        
+        // 继续动画循环
+        this.animationId = requestAnimationFrame(() => this.animate());
+    }
+
+    // 绘制当前帧
+    drawCurrentFrame() {
+        if (!this.isLoaded || this.frames.length === 0) return;
+        
+        const frame = this.frames[this.currentFrame];
+        if (!frame) return;
+        
+        // 计算绘制位置和大小
         const centerX = this.targetPosition.x;
         const centerY = this.targetPosition.y;
         
-        // 使用更大的尺寸，确保GIF动画足够大且清晰
+        // 使用更大的尺寸，确保动画足够大且清晰
         const minSize = 150;
         const maxSize = Math.max(this.targetSize.width, this.targetSize.height);
-        const size = Math.max(minSize, maxSize * 1.2); // 比目标尺寸稍大
+        const size = Math.max(minSize, maxSize * 1.2);
         
-        // 计算GIF的绘制位置和大小
-        const gifWidth = this.gifImage.width;
-        const gifHeight = this.gifImage.height;
-        const scale = Math.min(size / gifWidth, size / gifHeight);
-        const drawWidth = gifWidth * scale;
-        const drawHeight = gifHeight * scale;
+        // 计算帧的绘制位置和大小
+        const frameWidth = frame.width;
+        const frameHeight = frame.height;
+        const scale = Math.min(size / frameWidth, size / frameHeight);
+        const drawWidth = frameWidth * scale;
+        const drawHeight = frameHeight * scale;
         
-        // 计算左上角位置（GIF元素使用左上角定位）
+        // 计算左上角位置
         const drawX = centerX - drawWidth / 2;
         const drawY = centerY - drawHeight / 2;
         
-        // 边界检查，确保GIF不会超出屏幕
+        // 边界检查，确保动画不会超出屏幕
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         
         let finalX = Math.max(10, Math.min(drawX, viewportWidth - drawWidth - 10));
         let finalY = Math.max(10, Math.min(drawY, viewportHeight - drawHeight - 10));
         
-        // 设置GIF元素的位置和大小
-        this.gifElement.style.position = 'fixed'; // 使用fixed定位，相对于视口
-        this.gifElement.style.left = finalX + 'px';
-        this.gifElement.style.top = finalY + 'px';
-        this.gifElement.style.width = drawWidth + 'px';
-        this.gifElement.style.height = drawHeight + 'px';
-        this.gifElement.style.display = 'block';
-        this.gifElement.style.zIndex = '1000';
-        this.gifElement.style.pointerEvents = 'none'; // 防止干扰触摸事件
-        
-        console.log('GIF动画显示:', {
-            originalPosition: { x: centerX, y: centerY },
-            calculatedPosition: { x: drawX, y: drawY },
-            finalPosition: { x: finalX, y: finalY },
-            size: { width: drawWidth, height: drawHeight },
-            originalSize: { width: gifWidth, height: gifHeight },
-            viewport: { width: viewportWidth, height: viewportHeight }
-        });
+        // 绘制当前帧
+        this.ctx.drawImage(frame, finalX, finalY, drawWidth, drawHeight);
     }
 
-    // 加载GIF动画 - 优化版本
-    loadGif(gifPath) {
+    // 加载PNG逐帧动画
+    loadFrames() {
         return new Promise((resolve, reject) => {
-            this.gifImage = new Image();
-            this.gifPath = gifPath; // 存储路径，延迟创建元素
+            const framePaths = [
+                '/images/GIF1.png',
+                '/images/GIF2.png',
+                '/images/GIF3.png',
+                '/images/GIF4.png'
+            ];
             
-            // 设置加载超时
-            const timeout = setTimeout(() => {
-                reject(new Error('GIF加载超时'));
-            }, 3000);
+            let loadedCount = 0;
+            const totalFrames = framePaths.length;
             
-            this.gifImage.onload = () => {
-                clearTimeout(timeout);
-                this.gifLoaded = true;
-                console.log('GIF动画加载成功:', gifPath, '尺寸:', this.gifImage.width, 'x', this.gifImage.height);
-                resolve();
-            };
-            
-            this.gifImage.onerror = (error) => {
-                clearTimeout(timeout);
-                console.error('GIF动画加载失败:', error);
-                reject(error);
-            };
-            
-            this.gifImage.src = gifPath;
+            framePaths.forEach((path, index) => {
+                const img = new Image();
+                
+                // 设置加载超时
+                const timeout = setTimeout(() => {
+                    reject(new Error(`帧${index + 1}加载超时`));
+                }, 3000);
+                
+                img.onload = () => {
+                    clearTimeout(timeout);
+                    this.frames[index] = img;
+                    loadedCount++;
+                    
+                    console.log(`帧${index + 1}加载成功: ${path}, 尺寸: ${img.width}x${img.height}`);
+                    
+                    if (loadedCount === totalFrames) {
+                        this.frameCount = totalFrames;
+                        this.isLoaded = true;
+                        console.log(`所有帧加载完成，共${totalFrames}帧`);
+                        resolve();
+                    }
+                };
+                
+                img.onerror = (error) => {
+                    clearTimeout(timeout);
+                    console.error(`帧${index + 1}加载失败:`, error);
+                    reject(error);
+                };
+                
+                img.src = path;
+            });
         });
     }
 
-    // 延迟创建GIF元素，只在需要时创建
-    createGifElementIfNeeded() {
-        if (!this.gifElement && this.gifPath && this.gifLoaded) {
-            // 移除旧的GIF元素
-            if (this.gifElement) {
-                this.gifElement.remove();
-            }
-            
-            // 创建新的GIF元素
-            this.gifElement = document.createElement('img');
-            this.gifElement.src = this.gifPath;
-            this.gifElement.style.display = 'none';
-            this.gifElement.style.position = 'absolute';
-            this.gifElement.style.zIndex = '1000';
-            this.gifElement.style.pointerEvents = 'none';
-            
-            // 添加到body中
-            document.body.appendChild(this.gifElement);
-            
-            console.log('GIF元素已创建并添加到页面');
-        }
+    // 兼容旧版本的GIF加载方法
+    loadGif(gifPath) {
+        console.log('检测到GIF路径，自动切换到PNG逐帧动画模式');
+        return this.loadFrames();
     }
 
     // 兼容旧版本的方法
@@ -192,11 +195,9 @@ export class ARAnimation {
     dispose() {
         this.stop();
         
-        // 移除GIF元素
-        if (this.gifElement) {
-            this.gifElement.remove();
-            this.gifElement = null;
-        }
+        // 清理帧图片
+        this.frames = [];
+        this.isLoaded = false;
         
         console.log('AR动画资源已释放');
     }
