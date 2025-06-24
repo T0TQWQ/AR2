@@ -1,22 +1,26 @@
 export class ImageTracker {
     constructor() {
         this.lastDetection = null;
-        this.detectionTimeout = 300; // 进一步减少到300ms
+        this.detectionTimeout = 500; // 增加到500ms，减少重复检测
         this.templates = [];
-        this.threshold = 0.2; // 进一步降低匹配阈值
+        this.threshold = 0.15; // 降低匹配阈值，提高检测灵敏度
         this.debugMode = false;
         this.lastDetectionTime = 0;
-        this.detectionInterval = 150; // 增加到150ms，减少CPU使用
+        this.detectionInterval = 250; // 增加到250ms，大幅减少CPU使用
         this.isInitialized = false;
+        
+        // 性能优化：缓存检测结果
+        this.detectionCache = new Map();
+        this.cacheTimeout = 1000; // 缓存1秒
         
         // 延迟初始化，减少启动时间
         setTimeout(() => {
             this.isInitialized = true;
             console.log('图片追踪器延迟初始化完成');
-        }, 100);
+        }, 200); // 减少延迟时间
     }
 
-    // 添加模板图片 - 优化版本
+    // 添加模板图片 - 进一步优化版本
     addTemplate(imageUrl, name = 'template') {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -25,7 +29,7 @@ export class ImageTracker {
             // 设置加载超时
             const timeout = setTimeout(() => {
                 reject(new Error('图片加载超时'));
-            }, 3000);
+            }, 2000); // 减少超时时间
             
             img.onload = () => {
                 clearTimeout(timeout);
@@ -34,8 +38,8 @@ export class ImageTracker {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 
-                // 限制图片尺寸以提高性能
-                const maxSize = 200;
+                // 进一步限制图片尺寸以提高性能
+                const maxSize = 150; // 减少最大尺寸
                 const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
                 canvas.width = img.width * scale;
                 canvas.height = img.height * scale;
@@ -64,7 +68,7 @@ export class ImageTracker {
         });
     }
 
-    // 检测图片
+    // 优化的图片检测
     async detect(ctx, width, height) {
         try {
             // 限制检测频率
@@ -73,6 +77,13 @@ export class ImageTracker {
                 return this.lastDetection ? this.lastDetection.result : { detected: false };
             }
             this.lastDetectionTime = now;
+
+            // 检查缓存
+            const cacheKey = `${width}x${height}`;
+            const cachedResult = this.detectionCache.get(cacheKey);
+            if (cachedResult && now - cachedResult.timestamp < this.cacheTimeout) {
+                return cachedResult.result;
+            }
 
             // 检查是否有有效的检测结果
             if (this.lastDetection && 
@@ -85,22 +96,31 @@ export class ImageTracker {
             
             // 对每个模板进行匹配
             for (const template of this.templates) {
-                const match = this.matchTemplate(frameData, template, width, height);
+                const match = this.matchTemplateOptimized(frameData, template, width, height);
                 
                 if (match && match.confidence > this.threshold) {
-                    console.log(`✅ 检测到图片 "${template.name}"，匹配度: ${match.confidence.toFixed(3)}`);
+                    const result = {
+                        detected: true,
+                        type: 'image',
+                        name: template.name,
+                        position: match.position,
+                        size: match.size,
+                        confidence: match.confidence
+                    };
+                    
+                    // 缓存结果
+                    this.detectionCache.set(cacheKey, {
+                        timestamp: now,
+                        result: result
+                    });
+                    
                     this.lastDetection = {
                         timestamp: now,
-                        result: {
-                            detected: true,
-                            type: 'image',
-                            name: template.name,
-                            position: match.position,
-                            size: match.size,
-                            confidence: match.confidence
-                        }
+                        result: result
                     };
-                    return this.lastDetection.result;
+                    
+                    console.log(`✅ 检测到图片 "${template.name}"，匹配度: ${match.confidence.toFixed(3)}`);
+                    return result;
                 }
             }
 
@@ -110,7 +130,14 @@ export class ImageTracker {
                 this.lastDetection = null;
             }
 
-            return { detected: false };
+            // 缓存未检测到结果
+            const noDetectionResult = { detected: false };
+            this.detectionCache.set(cacheKey, {
+                timestamp: now,
+                result: noDetectionResult
+            });
+
+            return noDetectionResult;
 
         } catch (error) {
             console.error('图片检测错误:', error);
@@ -118,8 +145,8 @@ export class ImageTracker {
         }
     }
 
-    // 模板匹配算法 - 优化版本
-    matchTemplate(frameData, template, frameWidth, frameHeight) {
+    // 优化的模板匹配算法
+    matchTemplateOptimized(frameData, template, frameWidth, frameHeight) {
         const templateWidth = template.width;
         const templateHeight = template.height;
         
@@ -132,18 +159,24 @@ export class ImageTracker {
         let bestConfidence = 0;
 
         // 增加搜索步长以提高性能
-        const step = Math.max(2, Math.floor(Math.min(templateWidth, templateHeight) / 15));
+        const step = Math.max(3, Math.floor(Math.min(templateWidth, templateHeight) / 20));
         
         // 限制搜索范围，只搜索中心区域
-        const searchMargin = Math.min(100, Math.floor(Math.min(frameWidth, frameHeight) * 0.1));
+        const searchMargin = Math.min(80, Math.floor(Math.min(frameWidth, frameHeight) * 0.08));
         const startX = searchMargin;
         const startY = searchMargin;
         const endX = frameWidth - templateWidth - searchMargin;
         const endY = frameHeight - templateHeight - searchMargin;
         
-        for (let y = startY; y <= endY; y += step) {
-            for (let x = startX; x <= endX; x += step) {
-                const confidence = this.calculateSimilarity(
+        // 使用更少的采样点
+        const maxSamples = 100; // 限制最大采样数
+        let sampleCount = 0;
+        
+        for (let y = startY; y <= endY && sampleCount < maxSamples; y += step) {
+            for (let x = startX; x <= endX && sampleCount < maxSamples; x += step) {
+                sampleCount++;
+                
+                const confidence = this.calculateSimilarityFast(
                     frameData, template.imageData,
                     x, y, frameWidth,
                     0, 0, templateWidth,
@@ -157,6 +190,11 @@ export class ImageTracker {
                         size: { width: templateWidth, height: templateHeight },
                         confidence
                     };
+                    
+                    // 如果找到很好的匹配，提前退出
+                    if (confidence > 0.8) {
+                        return bestMatch;
+                    }
                 }
             }
         }
@@ -164,29 +202,46 @@ export class ImageTracker {
         return bestMatch;
     }
 
-    // 计算相似度
-    calculateSimilarity(frameData, templateData, frameX, frameY, frameWidth, 
-                       templateX, templateY, templateWidth, width, height) {
+    // 快速相似度计算
+    calculateSimilarityFast(frameData, templateData, frameX, frameY, frameWidth, 
+                           templateX, templateY, templateWidth, width, height) {
         let totalDiff = 0;
-        let totalPixels = width * height;
+        let totalPixels = 0;
 
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
+        // 使用更少的采样点进行计算
+        const sampleStep = Math.max(1, Math.floor(Math.min(width, height) / 10));
+        
+        for (let y = 0; y < height; y += sampleStep) {
+            for (let x = 0; x < width; x += sampleStep) {
                 const frameIndex = ((frameY + y) * frameWidth + (frameX + x)) * 4;
                 const templateIndex = ((templateY + y) * templateWidth + (templateX + x)) * 4;
 
-                // 计算RGB差异
-                const rDiff = Math.abs(frameData.data[frameIndex] - templateData.data[frameIndex]);
-                const gDiff = Math.abs(frameData.data[frameIndex + 1] - templateData.data[frameIndex + 1]);
-                const bDiff = Math.abs(frameData.data[frameIndex + 2] - templateData.data[frameIndex + 2]);
+                // 只计算RGB差异，忽略Alpha通道
+                const rDiff = Math.abs(frameData.data[frameIndex] - templateData.data[templateIndex]);
+                const gDiff = Math.abs(frameData.data[frameIndex + 1] - templateData.data[templateIndex + 1]);
+                const bDiff = Math.abs(frameData.data[frameIndex + 2] - templateData.data[templateIndex + 2]);
 
                 totalDiff += (rDiff + gDiff + bDiff) / 3;
+                totalPixels++;
             }
         }
 
         // 计算相似度（0-1，1表示完全匹配）
+        if (totalPixels === 0) return 0;
         const averageDiff = totalDiff / totalPixels;
         return Math.max(0, 1 - averageDiff / 255);
+    }
+
+    // 原始模板匹配算法（保留用于兼容性）
+    matchTemplate(frameData, template, frameWidth, frameHeight) {
+        return this.matchTemplateOptimized(frameData, template, frameWidth, frameHeight);
+    }
+
+    // 原始相似度计算（保留用于兼容性）
+    calculateSimilarity(frameData, templateData, frameX, frameY, frameWidth, 
+                       templateX, templateY, templateWidth, width, height) {
+        return this.calculateSimilarityFast(frameData, templateData, frameX, frameY, frameWidth, 
+                                          templateX, templateY, templateWidth, width, height);
     }
 
     // 简化的图片检测（基于颜色和形状特征）
@@ -201,10 +256,10 @@ export class ImageTracker {
                 if (this.isImageLike(region, imageData, width, height)) {
                     return {
                         detected: true,
-                        position: region.center,
-                        size: region.size,
-                        type: 'image',
-                        confidence: region.confidence
+                        type: 'simple',
+                        position: { x: region.x, y: region.y },
+                        size: { width: region.width, height: region.height },
+                        confidence: 0.5
                     };
                 }
             }
@@ -212,147 +267,88 @@ export class ImageTracker {
             return { detected: false };
             
         } catch (error) {
-            console.error('简单图片检测错误:', error);
+            console.error('简化检测错误:', error);
             return { detected: false };
         }
     }
 
+    // 寻找高对比度区域
     findHighContrastRegions(imageData, width, height) {
         const regions = [];
-        const step = 20;
-        const minRegionSize = 50;
+        const regionSize = 50;
+        const step = 25;
         
-        for (let y = step; y < height - step; y += step) {
-            for (let x = step; x < width - step; x += step) {
-                const contrast = this.calculateRegionContrast(imageData, x, y, step, width);
+        for (let y = 0; y < height - regionSize; y += step) {
+            for (let x = 0; x < width - regionSize; x += step) {
+                const contrast = this.calculateRegionContrast(imageData, x, y, regionSize, width);
                 
-                if (contrast > 50) { // 高对比度阈值
-                    const region = this.expandRegion(imageData, x, y, width, height);
-                    if (region.size.width > minRegionSize && region.size.height > minRegionSize) {
-                        regions.push(region);
-                    }
+                if (contrast > 30) { // 降低对比度阈值
+                    regions.push({
+                        x, y, width: regionSize, height: regionSize, contrast
+                    });
                 }
             }
         }
         
-        return regions;
+        // 按对比度排序，返回前几个
+        return regions.sort((a, b) => b.contrast - a.contrast).slice(0, 3);
     }
 
+    // 计算区域对比度
     calculateRegionContrast(imageData, x, y, size, width) {
-        let totalContrast = 0;
-        let count = 0;
+        let minBrightness = 255;
+        let maxBrightness = 0;
         
-        for (let dy = -size/2; dy < size/2; dy++) {
-            for (let dx = -size/2; dx < size/2; dx++) {
-                const nx = x + dx;
-                const ny = y + dy;
+        for (let dy = 0; dy < size; dy++) {
+            for (let dx = 0; dx < size; dx++) {
+                const index = ((y + dy) * width + (x + dx)) * 4;
+                const brightness = (imageData.data[index] + imageData.data[index + 1] + imageData.data[index + 2]) / 3;
                 
-                if (nx >= 0 && nx < width && ny >= 0 && ny < imageData.height) {
-                    const index = (ny * width + nx) * 4;
-                    const brightness = (imageData.data[index] + 
-                                      imageData.data[index + 1] + 
-                                      imageData.data[index + 2]) / 3;
-                    
-                    // 计算与周围像素的对比度
-                    let localContrast = 0;
-                    for (let sy = -2; sy <= 2; sy++) {
-                        for (let sx = -2; sx <= 2; sx++) {
-                            if (sx === 0 && sy === 0) continue;
-                            
-                            const sx2 = nx + sx;
-                            const sy2 = ny + sy;
-                            if (sx2 >= 0 && sx2 < width && sy2 >= 0 && sy2 < imageData.height) {
-                                const index2 = (sy2 * width + sx2) * 4;
-                                const brightness2 = (imageData.data[index2] + 
-                                                   imageData.data[index2 + 1] + 
-                                                   imageData.data[index2 + 2]) / 3;
-                                localContrast += Math.abs(brightness - brightness2);
-                            }
-                        }
-                    }
-                    
-                    totalContrast += localContrast;
-                    count++;
-                }
+                minBrightness = Math.min(minBrightness, brightness);
+                maxBrightness = Math.max(maxBrightness, brightness);
             }
         }
         
-        return count > 0 ? totalContrast / count : 0;
+        return maxBrightness - minBrightness;
     }
 
-    expandRegion(imageData, startX, startY, width, height) {
-        // 简单的区域扩展算法
-        let minX = startX, maxX = startX;
-        let minY = startY, maxY = startY;
-        
-        const visited = new Set();
-        const queue = [{x: startX, y: startY}];
-        
-        while (queue.length > 0) {
-            const {x, y} = queue.shift();
-            const key = `${x},${y}`;
-            
-            if (visited.has(key)) continue;
-            visited.add(key);
-            
-            const index = (y * width + x) * 4;
-            const brightness = (imageData.data[index] + 
-                              imageData.data[index + 1] + 
-                              imageData.data[index + 2]) / 3;
-            
-            // 如果像素足够亮，扩展区域
-            if (brightness > 100) {
-                minX = Math.min(minX, x);
-                maxX = Math.max(maxX, x);
-                minY = Math.min(minY, y);
-                maxY = Math.max(maxY, y);
-                
-                // 添加相邻像素
-                const neighbors = [
-                    {x: x+1, y}, {x: x-1, y},
-                    {x, y: y+1}, {x, y: y-1}
-                ];
-                
-                for (const neighbor of neighbors) {
-                    if (neighbor.x >= 0 && neighbor.x < width && 
-                        neighbor.y >= 0 && neighbor.y < height) {
-                        queue.push(neighbor);
-                    }
-                }
-            }
-        }
-        
-        return {
-            center: {
-                x: (minX + maxX) / 2,
-                y: (minY + maxY) / 2
-            },
-            size: {
-                width: maxX - minX,
-                height: maxY - minY
-            },
-            confidence: visited.size / ((maxX - minX) * (maxY - minY))
-        };
-    }
-
+    // 检查区域是否像图片
     isImageLike(region, imageData, width, height) {
-        // 检查区域是否具有图片特征
-        const { center, size } = region;
+        // 简单的图片特征检查
+        const edgeDensity = this.calculateEdgeDensity(imageData, region.x, region.y, region.width, region.height, width);
+        return edgeDensity > 0.1; // 边缘密度阈值
+    }
+
+    // 计算边缘密度
+    calculateEdgeDensity(imageData, x, y, w, h, width) {
+        let edgeCount = 0;
+        let totalPixels = 0;
         
-        // 检查大小是否合理
-        if (size.width < 30 || size.height < 30) return false;
-        if (size.width > width * 0.8 || size.height > height * 0.8) return false;
+        for (let dy = 1; dy < h - 1; dy++) {
+            for (let dx = 1; dx < w - 1; dx++) {
+                const index = ((y + dy) * width + (x + dx)) * 4;
+                const center = (imageData.data[index] + imageData.data[index + 1] + imageData.data[index + 2]) / 3;
+                
+                // 检查周围像素
+                const left = ((y + dy) * width + (x + dx - 1)) * 4;
+                const leftBrightness = (imageData.data[left] + imageData.data[left + 1] + imageData.data[left + 2]) / 3;
+                
+                if (Math.abs(center - leftBrightness) > 20) {
+                    edgeCount++;
+                }
+                
+                totalPixels++;
+            }
+        }
         
-        // 检查宽高比是否合理
-        const aspectRatio = size.width / size.height;
-        if (aspectRatio < 0.2 || aspectRatio > 5) return false;
-        
-        return true;
+        return totalPixels > 0 ? edgeCount / totalPixels : 0;
     }
 
     // 清理资源
     dispose() {
         this.templates = [];
+        this.detectionCache.clear();
         this.lastDetection = null;
+        console.log('图片追踪器资源已清理');
     }
 } 

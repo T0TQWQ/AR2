@@ -7,8 +7,9 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
+    color: #333;
     overflow: hidden;
+    height: 100vh;
 }
 
 #app {
@@ -18,7 +19,7 @@ body {
 }
 
 .screen {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -30,292 +31,348 @@ body {
 }
 
 .screen.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* 启动界面 */
-#startScreen {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    text-align: center;
-}
-
-.content {
-    max-width: 400px;
-    padding: 2rem;
-}
-
-.content h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.content p {
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
-    opacity: 0.9;
-}
-
-.btn-primary {
-    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-    color: white;
-    border: none;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    margin-bottom: 2rem;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-}
-
-.instructions {
-    background: rgba(255,255,255,0.1);
-    border-radius: 15px;
-    padding: 1.5rem;
-    backdrop-filter: blur(10px);
-}
-
-.instructions h3 {
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-}
-
-.instructions ul {
-    list-style: none;
-    text-align: left;
-}
-
-.instructions li {
-    margin-bottom: 0.5rem;
-    padding-left: 1.5rem;
-    position: relative;
-}
-
-.instructions li:before {
-    content: "•";
-    position: absolute;
-    left: 0;
-    color: #ff6b6b;
-    font-weight: bold;
-}
-
-/* AR界面 */
-#arScreen {
-    background: #000;
-}
-
-.ar-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-#video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.ar-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.controls {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 1rem;
-    z-index: 10;
-}
-
-.btn-capture, .btn-back {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
-
-.btn-capture {
-    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-    color: white;
-}
-
-.btn-back {
-    background: rgba(255,255,255,0.2);
-    color: white;
-    backdrop-filter: blur(10px);
-}
-
-.btn-capture:hover, .btn-back:hover {
-    transform: scale(1.1);
-}
-
-.status {
-    position: absolute;
-    top: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 25px;
-    backdrop-filter: blur(10px);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.status-text {
-    font-size: 0.9rem;
-}
-
-.status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #4CAF50;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* 拍照预览 */
-.capture-preview {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.9);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 20;
-}
-
-.capture-preview.hidden {
     display: none;
-}
-
-#capturedImage {
-    max-width: 90%;
-    max-height: 70%;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-}
-
-.capture-controls {
-    margin-top: 2rem;
-    display: flex;
-    gap: 1rem;
-}
-
-.btn-save, .btn-retake {
-    padding: 0.8rem 1.5rem;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.btn-save {
-    background: #4CAF50;
-    color: white;
-}
-
-.btn-retake {
-    background: #f44336;
-    color: white;
-}
-
-.btn-save:hover, .btn-retake:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 /* 加载界面 */
 #loadingScreen {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    z-index: 1000;
 }
 
 .loading-content {
     text-align: center;
+    color: white;
+    max-width: 400px;
+    padding: 2rem;
 }
 
-.spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid rgba(255,255,255,0.3);
-    border-top: 4px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 2rem;
+.loading-content h2 {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+    font-weight: 300;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.loading-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.loading-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.loading-status {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+}
+
+.performance-info {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    line-height: 1.4;
+}
+
+/* 启动界面 */
+#startScreen {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.start-content {
+    text-align: center;
+    color: white;
+    max-width: 400px;
+    padding: 2rem;
+}
+
+.start-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    font-weight: 300;
+}
+
+.start-content p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.app-info {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.app-info p {
+    margin: 0.5rem 0;
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    min-width: 120px;
+}
+
+.btn.primary {
+    background: linear-gradient(135deg, #4CAF50, #8BC34A);
+    color: white;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.btn.secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* AR界面 */
+#arScreen {
+    background: #000;
+    flex-direction: column;
+}
+
+.ar-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.status {
+    color: white;
+    font-size: 0.9rem;
+    text-align: center;
+    flex: 1;
+    margin: 0 1rem;
+}
+
+.ar-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.ar-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+.performance-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    color: white;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.performance-stats span {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-    .content h1 {
+    .start-content h1 {
         font-size: 2rem;
     }
     
-    .content p {
+    .start-content p {
         font-size: 1rem;
     }
     
-    .btn-primary {
-        padding: 0.8rem 1.5rem;
-        font-size: 1rem;
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        min-width: 100px;
     }
     
-    .controls {
-        bottom: 1rem;
-    }
-    
-    .btn-capture, .btn-back {
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
+    .ar-header {
+        padding: 0.8rem;
     }
     
     .status {
-        top: 1rem;
-        padding: 0.8rem 1.5rem;
+        font-size: 0.8rem;
     }
+    
+    .performance-stats {
+        gap: 1rem;
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .loading-content,
+    .start-content {
+        padding: 1.5rem;
+    }
+    
+    .start-content h1 {
+        font-size: 1.8rem;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+        min-width: 80px;
+    }
+    
+    .ar-header {
+        padding: 0.6rem;
+    }
+    
+    .performance-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.screen:not(.hidden) {
+    animation: fadeIn 0.5s ease;
+}
+
+/* 错误状态 */
+.error {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+/* 成功状态 */
+.success {
+    color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+/* 性能优化提示 */
+.performance-tip {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    z-index: 1000;
+    opacity: 0.8;
+}
+
+/* 加载优化提示 */
+.loading-tip {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    z-index: 1000;
+    opacity: 0.9;
+}
+
+/* 隐藏滚动条 */
+::-webkit-scrollbar {
+    display: none;
+}
+
+/* 禁用文本选择 */
+* {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* 允许按钮文本选择 */
+.btn {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .marker-info {
