@@ -97,6 +97,16 @@ export class ARAnimation {
                 framesCount: this.frames.length,
                 currentFrame: this.currentFrame
             });
+            
+            // 在canvas上绘制调试信息
+            if (this.ctx && this.canvas) {
+                this.ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                this.ctx.fillRect(10, 10, 300, 60);
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = '16px Arial';
+                this.ctx.fillText('动画未加载', 20, 35);
+                this.ctx.fillText(`已加载: ${this.frames.filter(f => f).length}/${this.frameCount}`, 20, 55);
+            }
             return;
         }
         
@@ -104,8 +114,19 @@ export class ARAnimation {
         if (!frame) {
             console.log('当前帧不存在', {
                 currentFrame: this.currentFrame,
-                totalFrames: this.frameCount
+                totalFrames: this.frameCount,
+                frames: this.frames.map(f => f ? 'loaded' : 'null')
             });
+            
+            // 在canvas上绘制调试信息
+            if (this.ctx && this.canvas) {
+                this.ctx.fillStyle = 'rgba(255, 165, 0, 0.8)';
+                this.ctx.fillRect(10, 10, 300, 60);
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = '16px Arial';
+                this.ctx.fillText('当前帧不存在', 20, 35);
+                this.ctx.fillText(`帧${this.currentFrame} / 总${this.frameCount}`, 20, 55);
+            }
             return;
         }
         
@@ -121,12 +142,25 @@ export class ARAnimation {
             drawInfo.height
         );
         
+        // 绘制调试边框
+        this.ctx.strokeStyle = 'lime';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(drawInfo.x, drawInfo.y, drawInfo.width, drawInfo.height);
+        
+        // 绘制帧信息
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(drawInfo.x, drawInfo.y - 25, 150, 25);
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = '12px Arial';
+        this.ctx.fillText(`帧${this.currentFrame + 1}/${this.frameCount}`, drawInfo.x + 5, drawInfo.y - 8);
+        
         // 调试信息：每10帧输出一次
         if (this.currentFrame % 10 === 0) {
             console.log('绘制动画帧', {
                 frame: this.currentFrame,
                 position: drawInfo,
-                frameSize: `${frame.width}x${frame.height}`
+                frameSize: `${frame.width}x${frame.height}`,
+                canvasSize: `${this.canvas.width}x${this.canvas.height}`
             });
         }
     }
@@ -188,57 +222,52 @@ export class ARAnimation {
             let errorCount = 0;
             const totalFrames = framePaths.length;
             
+            console.log('开始加载PNG动画帧...', framePaths);
+            
             // 设置总体超时
             const overallTimeout = setTimeout(() => {
                 if (loadedCount < totalFrames) {
+                    console.error('动画加载超时，已加载:', loadedCount, '/', totalFrames);
                     reject(new Error('动画加载超时'));
                 }
-            }, 3000);
+            }, 5000); // 增加超时时间到5秒
             
             framePaths.forEach((path, index) => {
                 const img = new Image();
                 
-                // 设置单个图片加载超时
-                const timeout = setTimeout(() => {
-                    errorCount++;
-                    console.warn(`帧${index + 1}加载超时: ${path}`);
-                    
-                    if (errorCount === totalFrames) {
-                        clearTimeout(overallTimeout);
-                        reject(new Error('所有帧加载失败'));
-                    }
-                }, 2000);
-                
                 img.onload = () => {
-                    clearTimeout(timeout);
-                    this.frames[index] = img;
                     loadedCount++;
-                    
-                    console.log(`帧${index + 1}加载成功: ${path}, 尺寸: ${img.width}x${img.height}`);
+                    console.log(`✅ 帧${index + 1}加载成功:`, path, `(${img.width}x${img.height})`);
+                    this.frames[index] = img;
                     
                     if (loadedCount === totalFrames) {
                         clearTimeout(overallTimeout);
                         this.frameCount = totalFrames;
                         this.isLoaded = true;
-                        console.log(`所有帧加载完成，共${totalFrames}帧`);
+                        console.log('🎉 所有动画帧加载完成!', {
+                            totalFrames: this.frameCount,
+                            frames: this.frames.map(f => f ? `${f.width}x${f.height}` : 'null')
+                        });
                         resolve();
                     }
                 };
                 
                 img.onerror = (error) => {
-                    clearTimeout(timeout);
                     errorCount++;
-                    console.error(`帧${index + 1}加载失败:`, error);
+                    console.error(`❌ 帧${index + 1}加载失败:`, path, error);
+                    this.frames[index] = null;
                     
                     if (errorCount === totalFrames) {
                         clearTimeout(overallTimeout);
-                        reject(new Error('所有帧加载失败'));
+                        console.error('所有动画帧加载失败');
+                        reject(new Error('所有动画帧加载失败'));
                     }
                 };
                 
-                // 设置跨域属性
+                // 添加跨域支持
                 img.crossOrigin = 'anonymous';
                 img.src = path;
+                console.log(`🔄 开始加载帧${index + 1}:`, path);
             });
         });
     }
