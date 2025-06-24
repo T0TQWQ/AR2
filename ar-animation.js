@@ -91,10 +91,23 @@ export class ARAnimation {
 
     // 优化的绘制当前帧
     drawCurrentFrame() {
-        if (!this.isLoaded || this.frames.length === 0) return;
+        if (!this.isLoaded || this.frames.length === 0) {
+            console.log('动画未加载完成，跳过绘制', {
+                isLoaded: this.isLoaded,
+                framesCount: this.frames.length,
+                currentFrame: this.currentFrame
+            });
+            return;
+        }
         
         const frame = this.frames[this.currentFrame];
-        if (!frame) return;
+        if (!frame) {
+            console.log('当前帧不存在', {
+                currentFrame: this.currentFrame,
+                totalFrames: this.frameCount
+            });
+            return;
+        }
         
         // 使用缓存的尺寸计算
         const drawInfo = this.getCachedDrawInfo(frame);
@@ -107,6 +120,15 @@ export class ARAnimation {
             drawInfo.width, 
             drawInfo.height
         );
+        
+        // 调试信息：每10帧输出一次
+        if (this.currentFrame % 10 === 0) {
+            console.log('绘制动画帧', {
+                frame: this.currentFrame,
+                position: drawInfo,
+                frameSize: `${frame.width}x${frame.height}`
+            });
+        }
     }
 
     // 缓存绘制信息，避免重复计算

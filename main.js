@@ -333,7 +333,13 @@ class OptimizedARApp {
     }
 
     showAnimation(detectionResult) {
-        if (!this.animation || !this.canvas) return;
+        if (!this.animation || !this.canvas) {
+            console.log('动画组件或canvas不存在', {
+                hasAnimation: !!this.animation,
+                hasCanvas: !!this.canvas
+            });
+            return;
+        }
         
         try {
             const position = {
@@ -345,6 +351,14 @@ class OptimizedARApp {
                 width: detectionResult.size.width,
                 height: detectionResult.size.height
             };
+            
+            console.log('准备显示动画', {
+                position: position,
+                size: size,
+                animationLoaded: this.animation.isLoaded,
+                framesCount: this.animation.frames.length,
+                frameCount: this.animation.frameCount
+            });
             
             this.animation.start(this.canvas, position, size);
             this.updateStatus('检测到marker，显示动画');

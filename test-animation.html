@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动画测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        canvas {
+            border: 2px solid #ccc;
+            margin: 10px 0;
+            display: block;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .frame-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .frame-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .frame-item img {
+            max-width: 100px;
+            max-height: 100px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎬 AR动画测试页面</h1>
+        
+        <div class="test-section">
+            <h3>1. 图片文件检查</h3>
+            <div id="fileCheck" class="status info">检查中...</div>
+            <div id="frameInfo" class="frame-info"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. 动画加载测试</h3>
+            <div id="loadStatus" class="status info">准备加载...</div>
+            <button onclick="loadAnimation()">加载动画</button>
+            <button onclick="testAnimation()">测试动画</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. 动画显示测试</h3>
+            <canvas id="testCanvas" width="400" height="300"></canvas>
+            <div id="animationStatus" class="status info">等待测试...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. 调试信息</h3>
+            <div id="debugInfo" style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { ARAnimation } from './ar-animation.js';
+        
+        let animation = null;
+        let canvas = null;
+        let ctx = null;
+        
+        // 调试信息输出
+        function log(message, type = 'info') {
+            const debugInfo = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugInfo.innerHTML += `[${timestamp}] ${message}\n`;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+            console.log(message);
+        }
+        
+        // 更新状态显示
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+        
+        // 检查图片文件
+        async function checkFiles() {
+            const framePaths = [
+                '/images/GIF1.png',
+                '/images/GIF2.png',
+                '/images/GIF3.png',
+                '/images/GIF4.png'
+            ];
+            
+            const frameInfo = document.getElementById('frameInfo');
+            let loadedCount = 0;
+            
+            for (let i = 0; i < framePaths.length; i++) {
+                const path = framePaths[i];
+                const frameItem = document.createElement('div');
+                frameItem.className = 'frame-item';
+                frameItem.innerHTML = `
+                    <div>帧 ${i + 1}</div>
+                    <img src="${path}" onload="this.parentElement.style.background='#d4edda'" onerror="this.parentElement.style.background='#f8d7da'">
+                    <div>${path}</div>
+                `;
+                frameInfo.appendChild(frameItem);
+                
+                try {
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        loadedCount++;
+                        log(`✅ 文件存在: ${path}`);
+                    } else {
+                        log(`❌ 文件不存在: ${path}`);
+                    }
+                } catch (error) {
+                    log(`❌ 文件加载失败: ${path} - ${error.message}`);
+                }
+            }
+            
+            if (loadedCount === framePaths.length) {
+                updateStatus('fileCheck', `✅ 所有图片文件检查完成 (${loadedCount}/${framePaths.length})`, 'success');
+            } else {
+                updateStatus('fileCheck', `❌ 部分文件缺失 (${loadedCount}/${framePaths.length})`, 'error');
+            }
+        }
+        
+        // 加载动画
+        async function loadAnimation() {
+            try {
+                updateStatus('loadStatus', '🔄 正在加载动画...', 'info');
+                log('开始加载动画...');
+                
+                animation = new ARAnimation();
+                await animation.loadFrames();
+                
+                updateStatus('loadStatus', '✅ 动画加载成功！', 'success');
+                log('动画加载成功！');
+                log(`动画信息: 帧数=${animation.frameCount}, 已加载=${animation.frames.length}, 状态=${animation.isLoaded}`);
+                
+            } catch (error) {
+                updateStatus('loadStatus', `❌ 动画加载失败: ${error.message}`, 'error');
+                log(`动画加载失败: ${error.message}`);
+            }
+        }
+        
+        // 测试动画
+        function testAnimation() {
+            if (!animation) {
+                updateStatus('animationStatus', '❌ 请先加载动画', 'error');
+                return;
+            }
+            
+            if (!animation.isLoaded) {
+                updateStatus('animationStatus', '❌ 动画未完全加载', 'error');
+                return;
+            }
+            
+            canvas = document.getElementById('testCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // 设置测试位置和大小
+            const position = { x: 200, y: 150 };
+            const size = { width: 100, height: 100 };
+            
+            log('开始测试动画显示...');
+            updateStatus('animationStatus', '🔄 正在测试动画...', 'info');
+            
+            animation.start(canvas, position, size);
+            
+            // 5秒后停止动画
+            setTimeout(() => {
+                animation.stop();
+                updateStatus('animationStatus', '✅ 动画测试完成！', 'success');
+                log('动画测试完成！');
+            }, 5000);
+        }
+        
+        // 页面加载完成后开始检查
+        window.addEventListener('load', () => {
+            log('页面加载完成，开始检查...');
+            checkFiles();
+        });
+        
+        // 暴露函数给全局
+        window.loadAnimation = loadAnimation;
+        window.testAnimation = testAnimation;
+    </script>
+</body>
+</html> 
