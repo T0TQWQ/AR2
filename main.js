@@ -492,49 +492,41 @@ class OptimizedARApp {
 
     stopAR() {
         console.log('停止AR体验...');
-        
         this.stopTracking();
-        
-        // 停止摄像头
-        if (this.video && this.video.srcObject) {
-            const tracks = this.video.srcObject.getTracks();
-            tracks.forEach(track => track.stop());
-            this.video.srcObject = null;
-        }
-        
+        this.hideAnimation();
         this.showStartScreen();
-        this.updateStatus('AR体验已停止');
+        this.updateStatus('AR体验已停止 / AR Experience Stopped');
     }
 
     capturePhoto() {
         if (!this.canvas || !this.video) return;
         
         try {
-            // 创建拍照canvas
-            const photoCanvas = document.createElement('canvas');
-            const photoCtx = photoCanvas.getContext('2d');
-            photoCanvas.width = this.canvas.width;
-            photoCanvas.height = this.canvas.height;
-
-            // 先绘制摄像头画面（背景）
-            photoCtx.drawImage(this.video, 0, 0, photoCanvas.width, photoCanvas.height);
-
-            // 再叠加动画帧（上一图层）
-            if (this.animation && this.animation.isRunning) {
-                this.animation.drawCurrentFrameToContext(photoCtx, photoCanvas.width, photoCanvas.height);
+            // 创建临时canvas用于合成
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            tempCanvas.width = this.canvas.width;
+            tempCanvas.height = this.canvas.height;
+            
+            // 先绘制摄像头画面
+            tempCtx.drawImage(this.video, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // 再叠加动画帧
+            if (this.animation && this.animation.isLoaded) {
+                this.animation.drawCurrentFrameToContext(tempCtx, tempCanvas.width, tempCanvas.height);
             }
-
-            // 保存图片
-            const photoDataUrl = photoCanvas.toDataURL('image/png');
+            
+            // 保存合成图片
             const link = document.createElement('a');
-            link.download = `ar-photo-${Date.now()}.png`;
-            link.href = photoDataUrl;
+            link.download = `ar_photo_${Date.now()}.png`;
+            link.href = tempCanvas.toDataURL();
             link.click();
-
-            this.updateStatus('照片已保存（包含完整背景和动画）');
+            
+            this.updateStatus('照片已保存（包含完整背景和动画） / Photo saved (with background and animation)');
         } catch (error) {
             console.error('拍照失败:', error);
-            this.updateStatus('拍照失败');
+            this.updateStatus('拍照失败 / Photo capture failed');
         }
     }
 
@@ -589,9 +581,7 @@ class OptimizedARApp {
 
     showError(message) {
         console.error('错误:', message);
-        this.updateStatus('错误: ' + message);
-        
-        // 3秒后清除错误信息
+        this.updateStatus('错误: ' + message + ' / Error: ' + message);
         setTimeout(() => {
             this.updateStatus('');
         }, 3000);

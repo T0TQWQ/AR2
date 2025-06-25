@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR动画应用</title>
+    <title>AR动画应用 / AR Animation App</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- 加载界面 -->
     <div id="loadingScreen" class="screen">
         <div class="loading-content">
-            <h2>AR应用加载中...</h2>
+            <h2>AR应用加载中...<br><span class="en">AR App Loading...</span></h2>
             <div class="loading-bar">
                 <div class="loading-progress" id="loadingProgress"></div>
             </div>
-            <div class="loading-status" id="loadingStatus">初始化中...</div>
+            <div class="loading-status" id="loadingStatus">初始化中... / Initializing...</div>
             <div class="performance-info" id="performanceInfo"></div>
         </div>
     </div>
@@ -22,11 +22,11 @@
     <!-- 启动界面 -->
     <div id="startScreen" class="screen">
         <div class="start-content">
-            <h1>AR动画应用</h1>
-            <button id="startAR" class="btn primary">开始AR体验</button>
+            <h1>AR动画应用<br><span class="en">AR Animation App</span></h1>
+            <button id="startAR" class="btn primary">开始AR体验<br><span class="en">Start AR Experience</span></button>
             <div class="app-info">
-                <p>版本: 2.0 (优化版)</p>
-                <p>支持: 手机摄像头扫描</p>
+                <p>版本: 2.0 (优化版) / Version: 2.0 (Optimized)</p>
+                <p>支持: 手机摄像头扫描 / Support: Mobile Camera Scanning</p>
             </div>
         </div>
     </div>
@@ -34,9 +34,8 @@
     <!-- AR界面 -->
     <div id="arScreen" class="screen hidden">
         <div class="ar-header">
-            <button id="backBtn" class="btn secondary">返回</button>
-            <div id="status" class="status">准备就绪</div>
-            <button id="captureBtn" class="btn primary">拍照</button>
+            <button id="backBtn" class="btn secondary">返回<br><span class="en">Back</span></button>
+            <div id="status" class="status">准备就绪 / Ready</div>
         </div>
         
         <div class="ar-content">
@@ -44,7 +43,9 @@
             <canvas id="canvas"></canvas>
         </div>
         
+        <!-- 拍照按钮移到最下方 -->
         <div class="ar-footer">
+            <button id="captureBtn" class="btn primary capture-btn">拍照<br><span class="en">Capture</span></button>
             <div class="performance-stats" id="performanceStats"></div>
         </div>
     </div>
@@ -90,12 +91,12 @@
                     
                     img.onload = () => {
                         this.loadTimes[src] = performance.now() - startTime;
-                        this.updateLoadingStatus(`图片加载完成: ${src.split('/').pop()}`);
+                        this.updateLoadingStatus(`图片加载完成: ${src.split('/').pop()} / Image loaded: ${src.split('/').pop()}`);
                     };
                     
                     img.onerror = () => {
                         this.loadTimes[src] = -1;
-                        this.updateLoadingStatus(`图片加载失败: ${src.split('/').pop()}`);
+                        this.updateLoadingStatus(`图片加载失败: ${src.split('/').pop()} / Image failed: ${src.split('/').pop()}`);
                     };
                     
                     img.src = src;
@@ -132,10 +133,10 @@
                 if (performanceInfo) {
                     const totalTime = performance.now() - this.startTime;
                     const memory = performance.memory ? 
-                        `内存: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB` : '';
+                        `内存: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB / Memory: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB` : '';
                     
                     performanceInfo.innerHTML = `
-                        <div>页面加载: ${totalTime.toFixed(0)}ms</div>
+                        <div>页面加载: ${totalTime.toFixed(0)}ms / Page Load: ${totalTime.toFixed(0)}ms</div>
                         <div>${memory}</div>
                     `;
                 }
@@ -147,7 +148,7 @@
                     
                     performanceStats.innerHTML = `
                         <span>FPS: ${fps}</span>
-                        <span>内存: ${memory}</span>
+                        <span>内存: ${memory} / Memory: ${memory}</span>
                     `;
                 }
             }
