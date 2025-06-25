@@ -1,76 +1,103 @@
 #!/bin/bash
 
-set -e
+# AR2 自动化部署脚本
+# 用于构建项目并部署到GitHub Pages
 
-echo "==============================="
-echo "🚀 AR2 Vite自动部署到gh-pages分支"
-echo "==============================="
+set -e  # 遇到错误立即退出
 
-# 1. 构建产物
-npm install
-npm run build
+echo "🚀 开始自动化部署..."
 
-# 2. 保存当前分支
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-# 3. 清理dist目录（避免切换分支时的冲突）
-echo "🧹 清理dist目录..."
-rm -rf dist
-
-# 4. 处理gh-pages分支切换
-if git show-ref --verify --quiet refs/heads/gh-pages; then
-    echo "📁 本地gh-pages分支存在，尝试切换..."
-    
-    # 暂存当前更改
-    if [ -n "$(git status --porcelain)" ]; then
-        echo "💾 暂存当前更改..."
-        git stash push -m "临时保存部署前更改"
-        STASHED=true
-    fi
-    
-    # 切换到gh-pages分支
-    git checkout gh-pages
-    
-    # 恢复暂存的更改（如果有）
-    if [ "$STASHED" = true ]; then
-        echo "📦 恢复暂存的更改..."
-        git stash pop
-    fi
-else
-    echo "🆕 创建新的gh-pages分支..."
-    git checkout -b gh-pages
+# 1. 确保在main分支
+echo "📋 检查当前分支..."
+if [[ $(git branch --show-current) != "main" ]]; then
+    echo "⚠️  当前不在main分支，切换到main分支..."
+    git checkout main
 fi
 
-# 5. 重新构建（在gh-pages分支上）
-echo "🔨 在gh-pages分支上重新构建..."
+# 2. 拉取最新代码
+echo "📥 拉取最新代码..."
+git pull origin main
+
+# 3. 安装依赖（如果需要）
+echo "📦 检查依赖..."
+if [ ! -d "node_modules" ]; then
+    echo "📦 安装依赖..."
+    npm install
+fi
+
+# 4. 构建项目
+echo "🔨 构建项目..."
 npm run build
 
-# 6. 直接复制dist内容到根目录（不清空）
-echo "📋 复制构建产物..."
+# 5. 检查构建结果
+if [ ! -d "dist" ]; then
+    echo "❌ 构建失败：dist目录不存在"
+    exit 1
+fi
+
+echo "✅ 构建成功！"
+
+# 6. 切换到gh-pages分支
+echo "🔄 切换到gh-pages分支..."
+git checkout gh-pages
+
+# 7. 备份当前gh-pages内容（可选）
+echo "💾 备份当前gh-pages内容..."
+if [ -d "backup" ]; then
+    rm -rf backup
+fi
+mkdir backup
+cp -r * backup/ 2>/dev/null || true
+cp -r .* backup/ 2>/dev/null || true
+
+# 8. 清理当前目录（保留.git）
+echo "🧹 清理当前目录..."
+git rm -rf . 2>/dev/null || true
+git clean -fdx
+
+# 9. 复制dist内容到根目录
+echo "📋 复制构建内容..."
 cp -r dist/* .
+cp dist/.* . 2>/dev/null || true
 
-# 7. 添加.nojekyll，防止GitHub Pages处理
-if [ ! -f .nojekyll ]; then
-  touch .nojekyll
-fi
+# 10. 确保.nojekyll文件存在（GitHub Pages需要）
+echo "📄 创建.nojekyll文件..."
+touch .nojekyll
 
-# 8. 提交并推送
-if [ -n "$(git status --porcelain)" ]; then
-  git add .
-  git commit -m "deploy: 自动发布最新构建产物 $(date '+%F %T')"
-  git push origin gh-pages
-  echo "✅ 已推送到远程gh-pages分支"
+# 11. 添加所有文件到Git
+echo "📝 添加文件到Git..."
+git add -A
+
+# 12. 检查是否有变更
+if git diff --cached --quiet; then
+    echo "ℹ️  没有变更需要提交"
 else
-  echo "✅ 没有变更需要提交，已是最新部署。"
+    # 13. 提交变更
+    echo "💾 提交变更..."
+    git commit -m "🚀 自动部署: $(date '+%Y-%m-%d %H:%M:%S')"
+    
+    # 14. 推送到远程
+    echo "📤 推送到GitHub..."
+    git push origin gh-pages
+    
+    echo "✅ 部署完成！"
+    echo "🌐 访问地址: https://$(git config user.name).github.io/AR2/"
+else
+    echo "ℹ️  没有变更需要提交"
 fi
 
-# 9. 切回开发分支
-git checkout "$CURRENT_BRANCH"
+# 15. 切换回main分支
+echo "🔄 切换回main分支..."
+git checkout main
 
-# 10. 在开发分支上重新构建
-echo "🔨 在开发分支上重新构建..."
-npm run build
-
-echo "==============================="
-echo "✅ 部署完成！请刷新GitHub Pages页面。"
-echo "===============================" 
+echo "🎉 自动化部署流程完成！"
+echo ""
+echo "📋 部署信息："
+echo "   - 构建时间: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "   - 分支: gh-pages"
+echo "   - 访问地址: https://$(git config user.name).github.io/AR2/"
+echo ""
+echo "💡 提示："
+echo "   - GitHub Pages可能需要几分钟才能更新"
+echo "   - 如果页面还是白屏，请强制刷新浏览器 (Ctrl+F5)"
+echo "   - 检查F12控制台是否有错误信息" 
