@@ -499,30 +499,25 @@ class OptimizedARApp {
             // 创建拍照canvas
             const photoCanvas = document.createElement('canvas');
             const photoCtx = photoCanvas.getContext('2d');
-            
             photoCanvas.width = this.canvas.width;
             photoCanvas.height = this.canvas.height;
-            
-            // 首先绘制完整的视频帧作为背景
+
+            // 先绘制摄像头画面（背景）
             photoCtx.drawImage(this.video, 0, 0, photoCanvas.width, photoCanvas.height);
-            
-            // 如果当前有动画显示，也将其绘制到拍照canvas上
+
+            // 再叠加动画帧（上一图层）
             if (this.animation && this.animation.isRunning) {
                 this.animation.drawCurrentFrameToContext(photoCtx, photoCanvas.width, photoCanvas.height);
             }
-            
-            // 转换为图片
+
+            // 保存图片
             const photoDataUrl = photoCanvas.toDataURL('image/png');
-            
-            // 创建下载链接
             const link = document.createElement('a');
             link.download = `ar-photo-${Date.now()}.png`;
             link.href = photoDataUrl;
             link.click();
-            
-            this.updateStatus('照片已保存（包含完整背景）');
-            console.log('照片已保存（包含完整背景）');
-            
+
+            this.updateStatus('照片已保存（包含完整背景和动画）');
         } catch (error) {
             console.error('拍照失败:', error);
             this.updateStatus('拍照失败');
