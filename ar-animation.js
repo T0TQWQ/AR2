@@ -165,6 +165,59 @@ export class ARAnimation {
         }
     }
 
+    // 新增：在指定的context上绘制当前帧（用于拍照功能）
+    drawCurrentFrameToContext(targetCtx, canvasWidth, canvasHeight) {
+        if (!this.isLoaded || this.frames.length === 0) {
+            console.log('动画未加载完成，跳过绘制到目标context');
+            return;
+        }
+        
+        const frame = this.frames[this.currentFrame];
+        if (!frame) {
+            console.log('当前帧不存在，跳过绘制到目标context');
+            return;
+        }
+        
+        // 计算在目标canvas上的绘制位置和大小
+        const centerX = this.targetPosition.x;
+        const centerY = this.targetPosition.y;
+        
+        // 使用更大的尺寸，确保动画足够大且清晰
+        const minSize = 120;
+        const maxSize = Math.max(this.targetSize.width, this.targetSize.height);
+        const size = Math.max(minSize, maxSize * 1.0);
+        
+        // 计算帧的绘制位置和大小
+        const frameWidth = frame.width;
+        const frameHeight = frame.height;
+        const scale = Math.min(size / frameWidth, size / frameHeight);
+        const drawWidth = frameWidth * scale;
+        const drawHeight = frameHeight * scale;
+        
+        // 计算左上角位置
+        const drawX = centerX - drawWidth / 2;
+        const drawY = centerY - drawHeight / 2;
+        
+        // 边界检查，确保动画不会超出目标canvas
+        let finalX = Math.max(10, Math.min(drawX, canvasWidth - drawWidth - 10));
+        let finalY = Math.max(10, Math.min(drawY, canvasHeight - drawHeight - 10));
+        
+        // 绘制当前帧到目标context
+        targetCtx.drawImage(
+            frame, 
+            finalX, 
+            finalY, 
+            drawWidth, 
+            drawHeight
+        );
+        
+        console.log('动画帧已绘制到目标context', {
+            frame: this.currentFrame,
+            position: { x: finalX, y: finalY, width: drawWidth, height: drawHeight },
+            targetCanvasSize: `${canvasWidth}x${canvasHeight}`
+        });
+    }
+
     // 缓存绘制信息，避免重复计算
     getCachedDrawInfo(frame) {
         const cacheKey = `${frame.width}-${frame.height}-${this.targetSize.width}-${this.targetSize.height}`;
