@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简单AR测试</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    .status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 10px;
+      z-index: 1000;
+      font-size: 14px;
+    }
+    .marker {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: white;
+      padding: 10px;
+      border: 2px solid #333;
+      z-index: 1000;
+      text-align: center;
+    }
+    .marker img {
+      width: 100px;
+      height: 100px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="status" id="status">
+    <div>状态: 加载中...</div>
+    <div>标记检测: 未检测到</div>
+  </div>
+
+  <div class="marker">
+    <div>AR标记 (HIRO)</div>
+    <img src="https://jeromeetienne.github.io/AR.js/data/images/HIRO.jpg" alt="HIRO标记">
+  </div>
+
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: true;">
+    <a-marker preset="hiro" id="marker">
+      <a-box position="0 0.5 0" material="color: red;"></a-box>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    window.addEventListener('load', function() {
+      document.getElementById('status').innerHTML = '<div>状态: 已加载</div><div>标记检测: 未检测到</div>';
+      
+      const marker = document.getElementById('marker');
+      if (marker) {
+        marker.addEventListener('markerFound', function() {
+          document.getElementById('status').innerHTML = '<div>状态: 已加载</div><div>标记检测: ✅ 检测到</div>';
+          console.log('标记被检测到');
+        });
+        
+        marker.addEventListener('markerLost', function() {
+          document.getElementById('status').innerHTML = '<div>状态: 已加载</div><div>标记检测: ❌ 丢失</div>';
+          console.log('标记丢失');
+        });
+      }
+    });
+  </script>
+</body>
+</html> 
