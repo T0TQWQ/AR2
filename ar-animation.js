@@ -142,18 +142,6 @@ export class ARAnimation {
             drawInfo.height
         );
         
-        // 绘制调试边框
-        this.ctx.strokeStyle = 'lime';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(drawInfo.x, drawInfo.y, drawInfo.width, drawInfo.height);
-        
-        // 绘制帧信息
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(drawInfo.x, drawInfo.y - 25, 150, 25);
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '12px Arial';
-        this.ctx.fillText(`帧${this.currentFrame + 1}/${this.frameCount}`, drawInfo.x + 5, drawInfo.y - 8);
-        
         // 调试信息：每10帧输出一次
         if (this.currentFrame % 10 === 0) {
             console.log('绘制动画帧', {
