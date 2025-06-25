@@ -249,7 +249,9 @@ export class ARAnimation {
                 basePath + 'GIF1.png',
                 basePath + 'GIF2.png',
                 basePath + 'GIF3.png',
-                basePath + 'GIF4.png'
+                basePath + 'GIF4.png',
+                basePath + 'GIF5.png',
+                basePath + 'GIF6.png'
             ];
             
             let loadedCount = 0;
