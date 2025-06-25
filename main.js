@@ -493,7 +493,7 @@ class OptimizedARApp {
     }
 
     capturePhoto() {
-        if (!this.canvas) return;
+        if (!this.canvas || !this.video) return;
         
         try {
             // 创建拍照canvas
@@ -503,8 +503,13 @@ class OptimizedARApp {
             photoCanvas.width = this.canvas.width;
             photoCanvas.height = this.canvas.height;
             
-            // 绘制当前帧
-            photoCtx.drawImage(this.canvas, 0, 0);
+            // 首先绘制完整的视频帧作为背景
+            photoCtx.drawImage(this.video, 0, 0, photoCanvas.width, photoCanvas.height);
+            
+            // 如果当前有动画显示，也将其绘制到拍照canvas上
+            if (this.animation && this.animation.isRunning) {
+                this.animation.drawCurrentFrameToContext(photoCtx, photoCanvas.width, photoCanvas.height);
+            }
             
             // 转换为图片
             const photoDataUrl = photoCanvas.toDataURL('image/png');
@@ -515,8 +520,8 @@ class OptimizedARApp {
             link.href = photoDataUrl;
             link.click();
             
-            this.updateStatus('照片已保存');
-            console.log('照片已保存');
+            this.updateStatus('照片已保存（包含完整背景）');
+            console.log('照片已保存（包含完整背景）');
             
         } catch (error) {
             console.error('拍照失败:', error);
