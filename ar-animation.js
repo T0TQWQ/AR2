@@ -243,11 +243,13 @@ export class ARAnimation {
     // 优化的PNG逐帧动画加载
     loadFrames() {
         return new Promise((resolve, reject) => {
+            // 根据环境使用不同的路径
+            const basePath = import.meta.env.DEV ? './images/' : '/AR2/images/';
             const framePaths = [
-                './images/GIF1.png',
-                './images/GIF2.png',
-                './images/GIF3.png',
-                './images/GIF4.png'
+                basePath + 'GIF1.png',
+                basePath + 'GIF2.png',
+                basePath + 'GIF3.png',
+                basePath + 'GIF4.png'
             ];
             
             let loadedCount = 0;

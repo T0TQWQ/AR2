@@ -173,7 +173,9 @@ class OptimizedARApp {
         
         // 尝试加载marker，但不阻塞
         try {
-            await tracker.addTemplate('./images/marker.png', 'marker');
+            // 根据环境使用不同的路径
+            const markerPath = import.meta.env.DEV ? './images/marker.png' : '/AR2/images/marker.png';
+            await tracker.addTemplate(markerPath, 'marker');
             console.log('Marker加载成功');
         } catch (error) {
             console.log('Marker加载失败，使用备用方案');
@@ -270,7 +272,9 @@ class OptimizedARApp {
         
         try {
             this.showARScreen();
-            this.updateStatus('正在启动摄像头...');
+            
+            // 确保动画被隐藏
+            this.hideAnimation();
             
             const cameraStarted = await this.requestCamera();
             if (!cameraStarted) {
@@ -278,16 +282,13 @@ class OptimizedARApp {
                 return;
             }
             
-            this.updateStatus('摄像头已启动，等待视频加载...');
             await this.waitForVideoLoad();
             
             // 如果追踪器还没准备好，等待一下
             if (!this.imageTracker) {
-                this.updateStatus('正在准备图像识别...');
                 await this.waitForTracker();
             }
             
-            this.updateStatus('开始追踪marker...');
             this.startTracking();
             
         } catch (error) {
@@ -365,9 +366,23 @@ class OptimizedARApp {
                 this.canvas.height
             );
             
-            if (detectionResult && detectionResult.detected) {
+            // 更严格的检测条件
+            if (detectionResult && 
+                detectionResult.detected && 
+                detectionResult.confidence > 0.7 && // 确保置信度足够高
+                detectionResult.position && 
+                detectionResult.size &&
+                detectionResult.size.width > 20 && // 确保检测到的区域足够大
+                detectionResult.size.height > 20) {
+                
+                console.log('检测到marker:', {
+                    confidence: detectionResult.confidence,
+                    position: detectionResult.position,
+                    size: detectionResult.size
+                });
                 this.showAnimation(detectionResult);
             } else {
+                // 没有检测到marker，隐藏动画
                 this.hideAnimation();
             }
             
@@ -416,11 +431,9 @@ class OptimizedARApp {
             });
             
             this.animation.start(this.canvas, position, size);
-            this.updateStatus('检测到marker，显示动画');
             
         } catch (error) {
             console.error('显示动画错误:', error);
-            this.updateStatus('动画显示失败: ' + error.message);
         }
     }
 
