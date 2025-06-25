@@ -1,0 +1,20 @@
+{
+  "name": "ar2-animation",
+  "version": "1.0.0",
+  "description": "基于Vite和Three.js的2D透明底动画AR应用",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["ar", "three.js", "vite", "animation", "web"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.156.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+} 
