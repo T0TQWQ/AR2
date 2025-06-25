@@ -265,10 +265,10 @@ export class ARAnimation {
     loadFrames() {
         return new Promise((resolve, reject) => {
             const framePaths = [
-                '/images/GIF1.png',
-                '/images/GIF2.png',
-                '/images/GIF3.png',
-                '/images/GIF4.png'
+                './images/GIF1.png',
+                './images/GIF2.png',
+                './images/GIF3.png',
+                './images/GIF4.png'
             ];
             
             let loadedCount = 0;
