@@ -410,10 +410,10 @@ class OptimizedARApp {
         }
         
         try {
-            // 优化位置计算：显示在marker正上方
+            // 位置计算：显示在左下角
             const position = {
-                x: detectionResult.position.x + detectionResult.size.width / 2,
-                y: detectionResult.position.y - detectionResult.size.height * 0.8 // 在marker上方，留一些间距
+                x: 50, // 距离左边缘50px
+                y: this.canvas.height - 200 // 距离底部200px
             };
             
             // 优化尺寸计算：确保动画足够大且清晰
