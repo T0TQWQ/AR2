@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR动画应用</title>
-  <script type="module" crossorigin src="/AR2/assets/main-BQt6tusl.js"></script>
+  <script type="module" crossorigin src="/AR2/assets/main-Ay2ykopm.js"></script>
   <link rel="stylesheet" crossorigin href="/AR2/assets/main-foWCno9v.css">
 </head>
 <body>
@@ -82,7 +82,7 @@
 
             monitorResourceLoading() {
                 // 监控图片加载
-                const images = ['./images/marker.png', './images/GIF1.png', './images/GIF2.png', './images/GIF3.png', './images/GIF4.png'];
+                const images = ['./images/marker.png', './images/GIF1.png', './images/GIF2.png', './images/GIF3.png', './images/GIF4.png', './images/GIF5.png', './images/GIF6.png'];
                 
                 images.forEach(src => {
                     const img = new Image();
@@ -116,7 +116,7 @@
                 const progressElement = document.getElementById('loadingProgress');
                 if (!progressElement) return;
                 
-                const totalResources = 5; // marker + 4帧图片
+                const totalResources = 7; // marker + 6帧图片
                 const loadedResources = Object.keys(this.loadTimes).filter(key => 
                     this.loadTimes[key] > 0
                 ).length;
