@@ -173,7 +173,7 @@ class OptimizedARApp {
         
         // 尝试加载marker，但不阻塞
         try {
-            await tracker.addTemplate('/images/marker.png', 'marker');
+            await tracker.addTemplate('./images/marker.png', 'marker');
             console.log('Marker加载成功');
         } catch (error) {
             console.log('Marker加载失败，使用备用方案');
