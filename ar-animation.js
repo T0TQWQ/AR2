@@ -141,16 +141,7 @@ export class ARAnimation {
             drawInfo.width, 
             drawInfo.height
         );
-        
-        // 调试信息：每10帧输出一次
-        if (this.currentFrame % 10 === 0) {
-            console.log('绘制动画帧', {
-                frame: this.currentFrame,
-                position: drawInfo,
-                frameSize: `${frame.width}x${frame.height}`,
-                canvasSize: `${this.canvas.width}x${this.canvas.height}`
-            });
-        }
+        // 不再绘制任何调试边框
     }
 
     // 新增：在指定的context上绘制当前帧（用于拍照功能）
