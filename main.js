@@ -168,7 +168,7 @@ class OptimizedARApp {
         // 设置简化的检测模式
         if (FAST_START_CONFIG.simpleDetection) {
             tracker.detectionInterval = FAST_START_CONFIG.detectionInterval;
-            tracker.threshold = 0.15; // 降低阈值，提高检测灵敏度
+            tracker.threshold = 0.3; // 降低阈值，提高检测灵敏度
         }
         
         // 尝试加载marker，但不阻塞
@@ -178,8 +178,9 @@ class OptimizedARApp {
             await tracker.addTemplate(markerPath, 'marker');
             console.log('Marker加载成功');
         } catch (error) {
-            console.log('Marker加载失败，使用备用方案');
-            await this.addTestTemplate(tracker);
+            console.log('Marker加载失败:', error.message);
+            // 不添加备用模板，避免误检测
+            throw error;
         }
         
         return tracker;
@@ -366,14 +367,14 @@ class OptimizedARApp {
                 this.canvas.height
             );
             
-            // 更严格的检测条件
+            // 更宽松的检测条件
             if (detectionResult && 
                 detectionResult.detected && 
-                detectionResult.confidence > 0.7 && // 确保置信度足够高
+                detectionResult.confidence > 0.4 && // 降低置信度要求
                 detectionResult.position && 
                 detectionResult.size &&
-                detectionResult.size.width > 20 && // 确保检测到的区域足够大
-                detectionResult.size.height > 20) {
+                detectionResult.size.width > 10 && // 降低最小尺寸要求
+                detectionResult.size.height > 10) {
                 
                 console.log('检测到marker:', {
                     confidence: detectionResult.confidence,
