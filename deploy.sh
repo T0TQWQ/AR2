@@ -24,6 +24,15 @@ fi
 
 echo "✅ 环境检查通过"
 
+# 切换到main分支
+echo "🔄 切换到 main 分支..."
+git checkout main
+
+if [ $? -ne 0 ]; then
+    echo "❌ 切换到main分支失败"
+    exit 1
+fi
+
 # 清理之前的构建
 echo "🧹 清理之前的构建..."
 rm -rf dist/
@@ -81,51 +90,76 @@ if ! git remote get-url origin &> /dev/null; then
     exit 0
 fi
 
-# 提交更改
-echo "📝 提交更改..."
+# 提交main分支的更改
+echo "📝 提交main分支更改..."
 git add .
-git commit -m "Update: 修复Jekyll构建问题，优化GitHub Pages部署"
+git commit -m "Update: 自动构建并部署最新产物"
 
-# 推送到GitHub
-echo "🚀 推送到GitHub..."
+# 推送到main分支
+echo "🚀 推送到main分支..."
 git push origin main
 
+if [ $? -ne 0 ]; then
+    echo "❌ 推送到main分支失败"
+    exit 1
+fi
+
+# 切换到gh-pages分支
+echo "🔄 切换到 gh-pages 分支..."
+git checkout gh-pages
+
+if [ $? -ne 0 ]; then
+    echo "📁 创建 gh-pages 分支..."
+    git checkout -b gh-pages
+fi
+
+# 清理gh-pages分支的所有文件
+echo "🧹 清理 gh-pages 分支..."
+git rm -rf . || true
+git clean -fdx || true
+
+# 复制构建产物到根目录
+echo "📋 复制构建产物..."
+cp -r dist/* . || true
+
+# 确保.nojekyll文件存在
+echo "" > .nojekyll
+
+# 添加所有文件
+echo "📝 添加部署文件..."
+git add .
+
+# 提交部署
+echo "💾 提交部署..."
+git commit -m "deploy: 自动构建并部署最新产物"
+
+# 强制推送到gh-pages分支
+echo "🚀 推送到 gh-pages 分支..."
+git push origin gh-pages --force
+
 if [ $? -eq 0 ]; then
-    echo "✅ 推送成功！"
-    echo ""
-    echo "📱 接下来请按照以下步骤配置GitHub Pages："
-    echo ""
-    echo "1️⃣ 进入GitHub仓库设置："
-    echo "   https://github.com/your-username/ar2-animation/settings"
-    echo ""
-    echo "2️⃣ 在左侧菜单找到 'Pages'"
-    echo ""
-    echo "3️⃣ 在 'Source' 部分选择："
-    echo "   • Deploy from a branch"
-    echo "   • Branch: gh-pages"
-    echo "   • Folder: / (root) ← 重要：选择root，不是doc"
-    echo ""
-    echo "4️⃣ 点击 'Save' 保存设置"
-    echo ""
-    echo "5️⃣ 等待GitHub Actions自动部署（2-3分钟）"
+    echo "✅ 部署成功！"
     echo ""
     echo "🌐 应用将在以下地址上线："
     echo "   https://your-username.github.io/ar2-animation/"
     echo ""
-    echo "🔧 如果遇到问题，请查看："
-    echo "   • TROUBLESHOOTING.md - 故障排除指南"
-    echo "   • DEPLOYMENT.md - 详细部署说明"
+    echo "⏱️  等待GitHub Pages部署（通常需要2-3分钟）..."
     echo ""
     echo "📋 检查清单："
-    echo "   ✅ 代码已推送"
-    echo "   ⏳ 等待GitHub Actions构建"
+    echo "   ✅ 代码已构建"
+    echo "   ✅ 已推送到main分支"
+    echo "   ✅ 已推送到gh-pages分支"
     echo "   ⏳ 等待GitHub Pages部署"
     echo "   ⏳ 测试应用功能"
-else
-    echo "❌ 推送失败，请检查网络连接和仓库权限"
     echo ""
-    echo "🔧 可能的解决方案："
-    echo "1. 检查网络连接"
-    echo "2. 确认GitHub仓库权限"
-    echo "3. 检查GitHub Token设置"
-fi 
+    echo "🔧 如果遇到问题，请检查："
+    echo "   • GitHub仓库设置中的Pages配置"
+    echo "   • 确保gh-pages分支被设置为部署源"
+else
+    echo "❌ 推送到gh-pages分支失败"
+    exit 1
+fi
+
+# 切换回main分支
+echo "🔄 切换回 main 分支..."
+git checkout main 
