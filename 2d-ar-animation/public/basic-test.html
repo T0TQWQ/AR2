@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>基础测试页面</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .test-button {
+      background: #007bff;
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    .test-button:hover {
+      background: #0056b3;
+    }
+    .status {
+      background: #e9ecef;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    .image-test {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .image-test img {
+      max-width: 200px;
+      border: 2px solid #333;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 2D AR动画 - 基础测试页面</h1>
+    
+    <div class="status">
+      <h3>页面状态</h3>
+      <p>✅ 页面加载成功</p>
+      <p>✅ 样式正常显示</p>
+      <p>✅ JavaScript可用</p>
+    </div>
+
+    <h2>📱 测试链接</h2>
+    <p>点击下面的按钮测试不同功能：</p>
+    
+    <button class="test-button" onclick="testCamera()">测试摄像头</button>
+    <button class="test-button" onclick="testImages()">测试图片加载</button>
+    <button class="test-button" onclick="location.href='simple-test.html'">AR简单测试</button>
+    <button class="test-button" onclick="location.href='index.html'">完整AR应用</button>
+
+    <div id="cameraStatus" class="status" style="display: none;">
+      <h3>摄像头测试结果</h3>
+      <div id="cameraResult"></div>
+    </div>
+
+    <div id="imageStatus" class="status" style="display: none;">
+      <h3>图片加载测试结果</h3>
+      <div id="imageResult"></div>
+    </div>
+
+    <h2>🖼️ 动画图片预览</h2>
+    <div class="image-test">
+      <div>
+        <img src="assets/frame1.png" alt="Frame 1" onload="this.style.borderColor='green'" onerror="this.style.borderColor='red'">
+        <p>Frame 1</p>
+      </div>
+      <div>
+        <img src="assets/frame2.png" alt="Frame 2" onload="this.style.borderColor='green'" onerror="this.style.borderColor='red'">
+        <p>Frame 2</p>
+      </div>
+      <div>
+        <img src="assets/frame3.png" alt="Frame 3" onload="this.style.borderColor='green'" onerror="this.style.borderColor='red'">
+        <p>Frame 3</p>
+      </div>
+      <div>
+        <img src="assets/frame4.png" alt="Frame 4" onload="this.style.borderColor='green'" onerror="this.style.borderColor='red'">
+        <p>Frame 4</p>
+      </div>
+      <div>
+        <img src="assets/s1.png" alt="S1" onload="this.style.borderColor='green'" onerror="this.style.borderColor='red'">
+        <p>S1 (标记)</p>
+      </div>
+    </div>
+
+    <h2>📋 使用说明</h2>
+    <ol>
+      <li><strong>基础测试</strong>：确认页面和图片能正常显示</li>
+      <li><strong>摄像头测试</strong>：检查浏览器是否支持摄像头</li>
+      <li><strong>AR简单测试</strong>：测试基本的AR.js功能</li>
+      <li><strong>完整AR应用</strong>：使用完整的2D动画AR应用</li>
+    </ol>
+
+    <h2>🔧 故障排除</h2>
+    <ul>
+      <li>如果图片显示红色边框，说明图片加载失败</li>
+      <li>如果摄像头测试失败，请检查浏览器权限设置</li>
+      <li>确保使用现代浏览器（Chrome、Safari、Firefox）</li>
+      <li>确保网络连接正常</li>
+    </ul>
+  </div>
+
+  <script>
+    function testCamera() {
+      const statusDiv = document.getElementById('cameraStatus');
+      const resultDiv = document.getElementById('cameraResult');
+      
+      statusDiv.style.display = 'block';
+      resultDiv.innerHTML = '<p>正在测试摄像头...</p>';
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        resultDiv.innerHTML = '<p style="color: red;">❌ 浏览器不支持摄像头API</p>';
+        return;
+      }
+      
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+          resultDiv.innerHTML = '<p style="color: green;">✅ 摄像头可用</p><p>摄像头权限已获得</p>';
+          // 停止摄像头流
+          stream.getTracks().forEach(track => track.stop());
+        })
+        .catch(function(err) {
+          resultDiv.innerHTML = '<p style="color: red;">❌ 摄像头不可用</p><p>错误: ' + err.message + '</p>';
+        });
+    }
+
+    function testImages() {
+      const statusDiv = document.getElementById('imageStatus');
+      const resultDiv = document.getElementById('imageResult');
+      
+      statusDiv.style.display = 'block';
+      resultDiv.innerHTML = '<p>正在测试图片加载...</p>';
+      
+      const images = [
+        'assets/frame1.png',
+        'assets/frame2.png', 
+        'assets/frame3.png',
+        'assets/frame4.png',
+        'assets/s1.png'
+      ];
+      
+      let loaded = 0;
+      let failed = 0;
+      
+      images.forEach(function(src) {
+        const img = new Image();
+        img.onload = function() {
+          loaded++;
+          checkComplete();
+        };
+        img.onerror = function() {
+          failed++;
+          checkComplete();
+        };
+        img.src = src;
+      });
+      
+      function checkComplete() {
+        if (loaded + failed === images.length) {
+          resultDiv.innerHTML = `
+            <p style="color: green;">✅ 成功加载: ${loaded} 张图片</p>
+            <p style="color: ${failed > 0 ? 'red' : 'green'};">${failed > 0 ? '❌' : '✅'} 加载失败: ${failed} 张图片</p>
+          `;
+        }
+      }
+    }
+
+    // 页面加载完成后的初始化
+    window.addEventListener('load', function() {
+      console.log('基础测试页面加载完成');
+    });
+  </script>
+</body>
+</html> 

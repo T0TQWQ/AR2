@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D AR动画使用说明</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .step {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .important {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .marker-image {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .marker-image img {
+            max-width: 200px;
+            border: 2px solid #333;
+        }
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 2D AR动画使用说明</h1>
+    
+    <div class="step important">
+        <h3>⚠️ 重要提示</h3>
+        <p>请确保您的手机和电脑在同一个WiFi网络下，这样才能正常访问AR应用。</p>
+    </div>
+
+    <h2>📱 手机访问步骤</h2>
+    
+    <div class="step">
+        <h3>步骤1：获取访问地址</h3>
+        <p>在手机浏览器中输入以下地址：</p>
+        <div style="background: #e9ecef; padding: 10px; border-radius: 5px; font-family: monospace;">
+            http://10.9.13.192:8080
+        </div>
+        <p>或者点击下面的链接：</p>
+        <a href="http://10.9.13.192:8080" class="button" target="_blank">打开AR应用</a>
+    </div>
+
+    <div class="step">
+        <h3>步骤2：允许摄像头权限</h3>
+        <p>当页面加载后，点击"测试AR功能"按钮，然后允许浏览器访问摄像头。</p>
+    </div>
+
+    <div class="step">
+        <h3>步骤3：准备AR标记</h3>
+        <p>您需要以下任一方式显示AR标记：</p>
+        <ul>
+            <li><strong>打印标记</strong>：将下面的图片打印出来</li>
+            <li><strong>屏幕显示</strong>：在另一台设备上显示标记图片</li>
+            <li><strong>手机分屏</strong>：在手机上同时显示AR应用和标记图片</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>步骤4：扫描标记</h3>
+        <p>将手机摄像头对准AR标记图案，保持距离20-50cm，确保光线充足。</p>
+    </div>
+
+    <h2>🎯 AR标记图案</h2>
+    
+    <div class="marker-image">
+        <p><strong>请将摄像头对准此图案：</strong></p>
+        <img src="assets/s1.png" alt="AR标记图案">
+        <p>使用s1.png作为AR识别标记</p>
+    </div>
+
+    <h2>🎬 动画效果</h2>
+    
+    <div class="step">
+        <p>当成功检测到标记时，您将看到以下动画序列：</p>
+        <ol>
+            <li>frame1.png</li>
+            <li>frame2.png</li>
+            <li>frame3.png</li>
+            <li>frame4.png</li>
+        </ol>
+        <p>动画会循环播放，每帧间隔200毫秒。</p>
+    </div>
+
+    <h2>🔧 故障排除</h2>
+    
+    <div class="step">
+        <h3>如果无法检测到标记：</h3>
+        <ul>
+            <li>确保标记图案清晰可见</li>
+            <li>保持充足的光线</li>
+            <li>避免反光和阴影</li>
+            <li>保持适当的距离（20-50cm）</li>
+            <li>确保手机摄像头清洁</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>如果页面无法加载：</h3>
+        <ul>
+            <li>确保手机和电脑在同一WiFi网络</li>
+            <li>检查防火墙设置</li>
+            <li>尝试使用不同的浏览器（推荐Chrome或Safari）</li>
+        </ul>
+    </div>
+
+    <h2>📞 技术支持</h2>
+    
+    <div class="step">
+        <p>如果遇到问题，请检查：</p>
+        <ul>
+            <li>浏览器控制台的错误信息</li>
+            <li>网络连接状态</li>
+            <li>摄像头权限设置</li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="http://10.9.13.192:8080" class="button" target="_blank">🚀 开始体验AR动画</a>
+    </div>
+</body>
+</html> 

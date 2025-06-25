@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D AR 动画演示</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    .debug-info {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 10px;
+      z-index: 1000;
+      font-size: 12px;
+      max-width: 300px;
+    }
+    .marker-pattern {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: white;
+      padding: 10px;
+      border: 2px solid #333;
+      z-index: 1000;
+      text-align: center;
+    }
+    .marker-pattern img {
+      width: 120px;
+      height: 120px;
+      border: 1px solid #ccc;
+    }
+    .test-button {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #007bff;
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1001;
+      font-size: 16px;
+    }
+    .instructions {
+      position: fixed;
+      top: 50%;
+      left: 10px;
+      background: rgba(255,255,255,0.9);
+      padding: 15px;
+      border-radius: 5px;
+      z-index: 1000;
+      max-width: 250px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 测试按钮 -->
+  <button class="test-button" id="testButton" onclick="testAR()">测试AR功能</button>
+
+  <!-- 使用说明 -->
+  <div class="instructions">
+    <h3>使用说明：</h3>
+    <ol>
+      <li>点击"测试AR功能"按钮</li>
+      <li>允许摄像头权限</li>
+      <li>将摄像头对准右下角的HIRO标记</li>
+      <li>保持标记在画面中央，距离20-50cm</li>
+      <li>确保光线充足，避免反光</li>
+    </ol>
+    <p><a href="simple-test.html" target="_blank">简单测试页面</a></p>
+  </div>
+
+  <!-- 调试信息显示 -->
+  <div class="debug-info" id="debugInfo">
+    <div>AR状态: <span id="arStatus">初始化中...</span></div>
+    <div>标记检测: <span id="markerStatus">未检测到</span></div>
+    <div>图片加载: <span id="imageStatus">检查中...</span></div>
+    <div>摄像头: <span id="cameraStatus">检查中...</span></div>
+    <div>错误信息: <span id="errorStatus">无</span></div>
+  </div>
+
+  <!-- 显示标记图案 -->
+  <div class="marker-pattern">
+    <div><strong>AR标记图案 (HIRO)</strong></div>
+    <div>请将摄像头对准此图案：</div>
+    <img src="https://jeromeetienne.github.io/AR.js/data/images/HIRO.jpg" alt="HIRO标记">
+    <div style="font-size: 12px; margin-top: 5px;">使用标准HIRO标记</div>
+  </div>
+
+  <!-- AR场景设置 -->
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: true;">
+    <!-- 使用HIRO标记 -->
+    <a-marker preset="hiro" id="marker" emitevents="true">
+      <!-- 2D动画图片 -->
+      <a-image id="animImage" src="assets/frame1.png" position="0 0 0" rotation="-90 0 0" width="1" height="1"></a-image>
+    </a-marker>
+    
+    <!-- 摄像头实体 -->
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // 测试AR功能
+    function testAR() {
+      console.log('开始测试AR功能');
+      document.getElementById('arStatus').textContent = '测试中...';
+      
+      // 检查A-Frame是否加载
+      if (typeof AFRAME !== 'undefined') {
+        document.getElementById('arStatus').textContent = 'A-Frame已加载 (v' + AFRAME.version + ')';
+        console.log('A-Frame版本:', AFRAME.version);
+      } else {
+        document.getElementById('arStatus').textContent = 'A-Frame未加载';
+        document.getElementById('errorStatus').textContent = 'A-Frame库加载失败';
+        return;
+      }
+      
+      // 检查摄像头权限
+      navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 1280 }, 
+          height: { ideal: 960 },
+          facingMode: 'environment'
+        } 
+      })
+        .then(function(stream) {
+          document.getElementById('cameraStatus').textContent = '摄像头可用';
+          console.log('摄像头权限已获得');
+          // 隐藏测试按钮
+          document.getElementById('testButton').style.display = 'none';
+        })
+        .catch(function(err) {
+          document.getElementById('cameraStatus').textContent = '摄像头不可用';
+          document.getElementById('errorStatus').textContent = '摄像头权限被拒绝: ' + err.message;
+          console.error('摄像头错误:', err);
+        });
+    }
+
+    // 调试信息更新
+    function updateDebugInfo() {
+      document.getElementById('arStatus').textContent = 'AR.js已加载';
+      
+      // 检查图片是否存在
+      const testImg = new Image();
+      testImg.onload = function() {
+        document.getElementById('imageStatus').textContent = '图片加载成功';
+      };
+      testImg.onerror = function() {
+        document.getElementById('imageStatus').textContent = '图片加载失败';
+        document.getElementById('errorStatus').textContent = '动画图片文件不存在';
+      };
+      testImg.src = 'assets/frame1.png';
+    }
+
+    // 标记检测事件
+    const marker = document.getElementById('marker');
+    if (marker) {
+      marker.addEventListener('markerFound', function() {
+        document.getElementById('markerStatus').textContent = '✅ 检测到标记';
+        console.log('标记被检测到');
+      });
+      
+      marker.addEventListener('markerLost', function() {
+        document.getElementById('markerStatus').textContent = '❌ 标记丢失';
+        console.log('标记丢失');
+      });
+    }
+
+    // 动画帧图片列表
+    const frames = [
+      'assets/frame1.png',
+      'assets/frame2.png',
+      'assets/frame3.png',
+      'assets/frame4.png'
+    ];
+    
+    let currentFrame = 0;
+    const animImage = document.getElementById('animImage');
+    
+    // 逐帧动画循环
+    if (animImage) {
+      setInterval(() => {
+        currentFrame = (currentFrame + 1) % frames.length;
+        animImage.setAttribute('src', frames[currentFrame]);
+      }, 200); // 200毫秒一帧
+    }
+
+    // 页面加载完成后更新调试信息
+    window.addEventListener('load', function() {
+      updateDebugInfo();
+    });
+
+    // 错误处理
+    window.addEventListener('error', function(e) {
+      document.getElementById('errorStatus').textContent = '页面错误: ' + e.message;
+      console.error('页面错误:', e);
+    });
+  </script>
+</body>
+</html> 
