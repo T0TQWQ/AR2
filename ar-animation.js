@@ -157,29 +157,32 @@ export class ARAnimation {
             return;
         }
         
-        // 计算在目标canvas上的绘制位置和大小
-        const centerX = this.targetPosition.x;
-        const centerY = this.targetPosition.y;
+        // 固定位置：左下角，与显示位置保持一致
+        const fixedPosition = {
+            x: 50, // 距离左边缘50px
+            y: canvasHeight - 200 // 距离底部200px
+        };
         
-        // 使用更大的尺寸，确保动画足够大且清晰
-        const minSize = 120;
-        const maxSize = Math.max(this.targetSize.width, this.targetSize.height);
-        const size = Math.max(minSize, maxSize * 1.0);
+        // 使用3倍放大的尺寸，与显示尺寸保持一致
+        const size = {
+            width: Math.max(this.targetSize.width * 3, 360), // 3倍放大
+            height: Math.max(this.targetSize.height * 3, 360)
+        };
         
         // 计算帧的绘制位置和大小
         const frameWidth = frame.width;
         const frameHeight = frame.height;
-        const scale = Math.min(size / frameWidth, size / frameHeight);
+        const scale = Math.min(size.width / frameWidth, size.height / frameHeight);
         const drawWidth = frameWidth * scale;
         const drawHeight = frameHeight * scale;
         
-        // 计算左上角位置
-        const drawX = centerX - drawWidth / 2;
-        const drawY = centerY - drawHeight / 2;
+        // 计算左上角位置（基于固定左下角位置）
+        const drawX = fixedPosition.x;
+        const drawY = fixedPosition.y - drawHeight; // 从底部向上计算
         
         // 边界检查，确保动画不会超出目标canvas
-        let finalX = Math.max(10, Math.min(drawX, canvasWidth - drawWidth - 10));
-        let finalY = Math.max(10, Math.min(drawY, canvasHeight - drawHeight - 10));
+        let finalX = Math.max(20, Math.min(drawX, canvasWidth - drawWidth - 20));
+        let finalY = Math.max(20, Math.min(drawY, canvasHeight - drawHeight - 20));
         
         // 绘制当前帧到目标context
         targetCtx.drawImage(
@@ -209,10 +212,10 @@ export class ARAnimation {
         const centerX = this.targetPosition.x;
         const centerY = this.targetPosition.y;
         
-        // 使用更大的尺寸，确保动画足够大且清晰
-        const minSize = 120; // 稍微减小最小尺寸
+        // 使用3倍放大的尺寸，确保动画足够大且清晰
+        const minSize = 300; // 最小尺寸也放大3倍
         const maxSize = Math.max(this.targetSize.width, this.targetSize.height);
-        const size = Math.max(minSize, maxSize * 1.0); // 减少缩放倍数
+        const size = Math.max(minSize, maxSize * 3); // 3倍放大
         
         // 计算帧的绘制位置和大小
         const frameWidth = frame.width;

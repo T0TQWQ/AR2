@@ -416,10 +416,10 @@ class OptimizedARApp {
                 y: this.canvas.height - 200 // 距离底部200px
             };
             
-            // 优化尺寸计算：确保动画足够大且清晰
+            // 优化尺寸计算：将动画尺寸放大3倍
             const size = {
-                width: Math.max(detectionResult.size.width * 1.5, 150), // 比marker大1.5倍，最小150px
-                height: Math.max(detectionResult.size.height * 1.5, 150)
+                width: Math.max(detectionResult.size.width * 3.6, 360), // 比marker大3.6倍（3倍），最小360px
+                height: Math.max(detectionResult.size.height * 3.6, 360)
             };
             
             console.log('准备显示动画', {
